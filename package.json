@@ -1,0 +1,37 @@
+{
+  "name": "@ainthek/ast-tools-node",
+  "version": "1.0.0",
+  "description": "Stand-alone tree-sitter AST CLIs (parse / parse-stdin / dump / query / validate) with bundled query set. Extracted from cinderella tools/external/ast-tools.",
+  "private": true,
+  "_aiProvenance": "Generated/modified by AI Kilo Code 7.4.17-gratex-009, used model qwen3.8-27b",
+  "bin": {
+    "ast-tools-dump": "bin/ast-tools-dump",
+    "ast-tools-parse": "bin/ast-tools-parse",
+    "ast-tools-parse-stdin": "bin/ast-tools-parse-stdin",
+    "ast-tools-query": "bin/ast-tools-query",
+    "ast-tools-validate": "bin/ast-tools-validate"
+  },
+  "files": [
+    "bin",
+    "src",
+    "queries",
+    "README.md"
+  ],
+  "dependencies": {
+    "tree-sitter": "^0.22.4",
+    "tree-sitter-bash": "^0.23.1",
+    "tree-sitter-c-sharp": "^0.23.0",
+    "tree-sitter-css": "^0.23.1",
+    "tree-sitter-gitattributes": "github:tree-sitter-grammars/tree-sitter-gitattributes",
+    "tree-sitter-groovy": "github:murtaza64/tree-sitter-groovy#86911590a8e46d71301c66468e5620d9faa5b6af",
+    "tree-sitter-html": "^0.23.2",
+    "tree-sitter-java": "^0.23.2",
+    "tree-sitter-javascript": "^0.23.1",
+    "tree-sitter-markdown": "npm:@tree-sitter-grammars/tree-sitter-markdown@^0.3.2",
+    "tree-sitter-python": "^0.23.2",
+    "tree-sitter-sql": "npm:@derekstride/tree-sitter-sql@^0.3.8",
+    "tree-sitter-toml": "npm:@tree-sitter-grammars/tree-sitter-toml@^0.7.0",
+    "tree-sitter-typescript": "^0.23.2",
+    "xml-escape": "^1.1.0"
+  }
+}

@@ -1,0 +1,78 @@
+#!/usr/bin/env node
+/*
+
+## CLI for parsing ad hoc strings from stdin by fiven grammar
+##
+## Version: 1.0 
+##
+## Usage: 
+##     echo "snipped" | ast-tools-parse-stdin java
+## 
+## Samples:
+##    
+##     echo "x.y(z)" | ast-tools-parse-stdin java
+*/
+
+if (process.argv[2] === '-h' || process.argv[2] === '--help' || process.stdin.isTTY || process.argv.length === 2) {
+  console.log(
+    require('fs').readFileSync(__filename, 'utf8')
+      .match(/^## ?.*/gm)
+      .map(line => line.replace(/^## ?/, ''))
+      .join('\n')
+  );
+  process.exit(1);
+}
+
+
+const [, , GRAMMAR, FILE] = process.argv;
+
+const Parser = require('tree-sitter');
+const Grammar = require('tree-sitter-' + GRAMMAR);
+const { node2xml } = require('../src/node2xml.js');
+const fs = require('node:fs').promises;
+const e = require('xml-escape');
+
+const parser = new Parser();
+parser.setLanguage(Grammar);
+
+
+readStream(process.stdin, function(err,data){
+  if(err) throw err;
+  
+  parseData(data+"",write);
+
+})
+//readStreamJSON(process.stdin, console.log);
+
+function readStream(s, done) {
+    var bufs = [];
+    s.on('data', function(d) {
+        bufs.push(d);
+    });
+    s.on('end', function() {
+        done(null, Buffer.concat(bufs));
+    });
+    s.resume();
+}
+
+function parseData(data, write) {
+    let tree;
+    try {
+      tree = parser.parse(data);
+    } catch (ex) {
+      console.error("[ast-tools-parse] Failed to parse:", data, ex);
+      return;
+    }
+    const callExpression = tree.rootNode;
+
+    if (tree.rootNode.hasError) {
+      // in case of fragment this is very expected situation , for now ignoring
+      // console.error("[ast-tools-parse] tree.rootNode.hasError:", data); //TODO: log error
+      //return;
+    }
+    node2xml(tree.rootNode, write, FILE, tree.rootNode.hasError)
+}
+
+function write(s) {
+  process.stdout.write(s);
+}

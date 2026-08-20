@@ -1,0 +1,52 @@
+#!/usr/bin/env node
+/*
+## Parses a source file using Tree-sitter and prints the AST as text.
+##
+## Version: 1.0
+##
+## Usage:
+##     ast-tools-dump <grammar> <file>
+##
+## Arguments:
+##     grammar    Tree-sitter grammar name (e.g., javascript, python, go)
+##     file       Path to the source file to parse
+##
+## Samples:
+##     ast-tools-dump javascript ./src/index.js
+##     ast-tools-dump python ./scripts/utils.py
+##     ast-tools-dump go ./main.go
+##
+## Depends on: tree-sitter, tree-sitter-<grammar>
+#
+# This help string was: Generated/modified by AI RooCode 3.53.0, used model qwen3.6-27b
+*/
+if (process.argv[2] === '-h' || process.argv[2] === '--help' || process.argv.length !== 4) {
+  console.log(
+    require('fs').readFileSync(__filename, 'utf8')
+      .match(/^## ?.*/gm)
+      .map(line => line.replace(/^## ?/, ''))
+      .join('\n')
+  );
+  process.exit(1);
+}
+
+const [, , GRAMMAR, FILE] = process.argv;
+
+const Parser = require('tree-sitter');
+const Grammar = require('tree-sitter-' + GRAMMAR);
+const fs = require('node:fs').promises;
+
+const parser = new Parser();
+parser.setLanguage(Grammar);
+
+parseFile(FILE);
+
+
+function parseFile(file) {
+  return fs.readFile(file, 'utf8').then((data) => {
+    //console.error(file);
+    let tree;
+    tree = parser.parse(data);
+    console.log(tree.rootNode.toString());
+  });
+}

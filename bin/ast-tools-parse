@@ -1,0 +1,120 @@
+#!/usr/bin/env node
+
+/*
+# CLI for tree-sitter
+# 
+echo "../cinderella/_sample_repos/spikes/csharp/AssemblyInfo.cs" | ast-tools-parse c-sharp
+*/
+
+
+/*
+##
+## CLI for tree-sitter, returns AST in XML format
+## IN: Reads list of files from stdin and language from first param
+## OUT: returns xml for individual AST trees enclosed in  
+##   <ast-cache>....</ast-cache>
+##
+## 
+## Version: 1.1 (replaces old, already deleted tree-sitter-parse CLI)
+##
+## Usage: 
+##     <list-of-files> | ast-tools-parse LANGUAGE (bash, c-sharp, cli, css, html, java, plsql, python, sql, toml)
+## 
+## LANGUAGE: can be one of installed tree-sitter grammars (see ../package.json)
+##  
+## Samples:
+## 
+##    ast-tools-parse bash <<< "_sample_repos/spikes/bash/tee-example2.sh"
+##    ast-tools-parse c-sharp <<< "_sample_repos/spikes/csharp/AssemblyInfo.cs"
+##    ast-tools-parse css <<< "_sample_repos/spikes/css/imports.css"
+##    ast-tools-parse gitattributes <<< ".gitattributes"
+##    ast-tools-parse html <<< "_sample_repos/spikes/html/mix-inline-script.htm"
+##    ast-tools-parse java <<< "_sample_repos/spikes/java/Infer.java"
+##    ast-tools-parse plsql <<< "_sample_repos/spikes/sql/chinook-mysql.sql"
+##    ast-tools-parse python <<< "_sample_repos/spikes/call_commands-for-python-536/multiple_calls.py"
+##    ast-tools-parse sql <<< "_sample_repos/spikes/sql/chinook-mysql.sql"
+##    ast-tools-parse toml <<< "_sample_repos/spikes/python-pip-tools-project518/pyproject.toml"
+##    ast-tools-parse typescript/tsx <<< "_sample_repos/spikes/test.tsx"
+##    ast-tools-parse typescript/typescript <<< "_sample_repos/spikes/TypeScriptSamples/angular1/app/app.ts"
+##
+##
+*/
+
+if (process.argv[2] === '-h' || process.argv[2] === '--help' || (process.stdin.isTTY || process.argv.length === 2)) {
+  console.log(
+    require('fs').readFileSync(__filename, 'utf8')
+      .match(/^## ?.*/gm)
+      .map(line => line.replace(/^## ?/, ''))
+      .join('\n')
+  );
+  process.exit(1);
+}
+
+
+const [, , GRAMMAR, FILE] = process.argv;
+
+const Parser = require('tree-sitter');
+const Grammar = require('tree-sitter-' + GRAMMAR);
+const { node2xml } = require('../src/node2xml.js');
+const fs = require('node:fs').promises;
+const e = require('xml-escape');
+
+const parser = new Parser();
+parser.setLanguage(Grammar);
+
+
+if (FILE) {
+  parseFile(FILE, write);
+} else {
+  parseFilesFromStdId();
+}
+
+function parseFilesFromStdId() {
+  const readline = require("readline");
+  let fl = 0;
+  let jobs = [];
+  readline.createInterface({ input: process.stdin })
+    .on('line', (FILE) => {
+      if (fl == 0) {
+        write("<ast-cache>");
+        fl++;
+      };
+      //console.error("parsing:", FILE);
+      const done = parseFile(FILE, write);
+      jobs.push(done);
+    })
+    .once('close', () => {
+      Promise.all(jobs).then(() => {
+        if (fl == 0) write("<ast-cache/>\n");
+        else write("</ast-cache>\n");
+      })
+    });
+}
+
+function parseFile(file, write) {
+  return fs.readFile(file, 'utf8').then((data) => {
+    //console.error(file);
+    let tree;
+    try {
+      tree = parser.parse(data);
+    } catch (ex) {
+      console.error("[ast-tools-parse] Failed to parse:", file, ex);
+      return;
+    }
+    const callExpression = tree.rootNode;
+
+    if (tree.rootNode.hasError) {
+      console.error("[ast-tools-parse] tree.rootNode.hasError:", file); //TODO: log error
+      // toto je cele na diskusiu z error hanlingom
+      // ci radsej sporukovat <ERROR> elementy alebo to cele zahodit
+      // a) verzia zo zahadzovanim
+      //return; 
+    }
+    node2xml(tree.rootNode, write, file, tree.rootNode.hasError /* b) verzia propagate error on root to XML*/);
+    //console.error(file, "done");
+  });
+}
+
+function write(s) {
+  process.stdout.write(s);
+}

@@ -1,0 +1,329 @@
+#!/usr/bin/env node
+
+/*
+## Generated/modified by AI RooCode 3.36.0, used model google/claude-sonnet-4-6
+##
+## CLI for tree-sitter query execution
+##
+## Executes tree-sitter queries against source files and outputs captures in JSON format.
+## Uses the same tree-sitter grammars as ast-tools-parse.
+##
+## Version: 1.0
+##          2.0  node type in captures
+##          3.0  --matches flag: one result per query match (uses query.matches() instead of query.captures())
+##               Enables proper per-match scoping for multi-pattern queries.
+##
+## Usage:
+##     git grep -l -I "pattern" | ast-tools-query LANGUAGE [OPTIONS]
+##
+## LANGUAGE: Grammar name (java, python, c-sharp, etc.)
+##
+## OPTIONS:
+##   -q, --query QUERY_STRING    Query string to execute
+##   -f, --query-file FILE       Query file (.scm) to load
+##   --format FORMAT             Output format: json (default), text, xml
+##   --compact                   Exclude position information from output
+##   --matches                   Output one result per query match (instead of one per file).
+##                               Uses query.matches() so each result contains only the captures
+##                               scoped to that specific pattern match. Useful for multi-pattern
+##                               queries where you need function.name + call.name pairs per match.
+##   -h, --help                  Show this help
+##
+## Query file paths:
+##   - Relative paths (e.g., "python-decorators.scm") are resolved from queries/ folder
+##   - Absolute paths or paths starting with ./ or ../ are used as-is
+##
+## Examples:
+##
+##   # Custom query string
+##   ast-tools-query java -q "(method_declaration) @method" Test.java
+##
+##   # Query from file (relative to queries/ folder)
+##   ast-tools-query python -f python-decorators.scm src/app.py
+##
+##   # Query from file (absolute or relative path)
+##   ast-tools-query python -f ./my-query.scm src/app.py
+##   ast-tools-query python -f /path/to/query.scm src/app.py
+##
+##   # Multiple files from stdin
+##   find src -name "*.java" | ast-tools-query java -f java-definitions.scm
+##
+##   # Compact output (no position info)
+##   echo "app.py" | ast-tools-query python -f python-decorators.scm --compact
+##
+##   # --matches: get all commands called inside each _detector bash function, grouped by function
+##   git grep -l -I '_detector' -- tools/detect/scripts tools/detect/scripts2 | \
+##     ast-tools-query bash -f bash-function-cindy-detector-calls.scm --matches --compact | \
+##     jq '[.[] |
+##       {file: .file,
+##        function: (.captures[] | select(.name == "function.name") | .text),
+##        call: (.captures[] | select(.name == "call.name") | .text)
+##       }] |
+##       group_by(.function) |
+##       map({file: .[0].file, function: .[0].function, calls: [.[].call]})'
+##
+*/
+
+if (process.argv.includes('-h') || process.argv.includes('--help') || (process.stdin.isTTY && process.argv.length === 2)) {
+  console.log(
+    require('fs').readFileSync(__filename, 'utf8')
+      .match(/^## ?.*/gm)
+      .map(line => line.replace(/^## ?/, ''))
+      .join('\n')
+  );
+  process.exit(1);
+}
+
+const Parser = require('tree-sitter');
+const fs = require('node:fs');
+const fsPromises = require('node:fs/promises');
+const path = require('node:path');
+
+// Parse command line arguments
+const args = process.argv.slice(2);
+const GRAMMAR = args[0];
+
+if (!GRAMMAR) {
+  console.error('Error: LANGUAGE argument is required');
+  process.exit(1);
+}
+
+let queryString = null;
+let queryFilePath = null;
+let outputFormat = 'json';
+let compactOutput = false;
+let matchesMode = false;
+// Parse options
+for (let i = 1; i < args.length; i++) {
+  const arg = args[i];
+  
+  if (arg === '-q' || arg === '--query') {
+    queryString = args[++i];
+  } else if (arg === '-f' || arg === '--query-file') {
+    queryFilePath = args[++i];
+  } else if (arg === '--format') {
+    outputFormat = args[++i];
+  } else if (arg === '--compact') {
+    compactOutput = true;
+  } else if (arg === '--matches') {
+    matchesMode = true;
+  } else if (!arg.startsWith('-')) {
+    console.error(`Error: Unknown argument '${arg}'. File arguments are not supported.`);
+    console.error('Please pipe file paths via stdin, e.g., `git grep -l ... | ast-tools-query ...`');
+    process.exit(1);
+  }
+}
+
+// Load grammar
+let Grammar;
+try {
+  Grammar = require('tree-sitter-' + GRAMMAR);
+} catch (error) {
+  console.error(`Error: Grammar 'tree-sitter-${GRAMMAR}' not found`);
+  console.error('Make sure the grammar is installed in node_modules');
+  process.exit(1);
+}
+
+// Initialize parser
+const parser = new Parser();
+parser.setLanguage(Grammar);
+
+// Load query string
+async function loadQueryString() {
+  if (queryString) {
+    return queryString;
+  }
+  
+  if (queryFilePath) {
+    let resolvedPath;
+    
+    // If path is absolute or starts with ./ or ../, use as-is
+    if (path.isAbsolute(queryFilePath) || queryFilePath.startsWith('./') || queryFilePath.startsWith('../')) {
+      resolvedPath = path.resolve(queryFilePath);
+    } else {
+      // Otherwise, resolve relative to queries folder
+      const queriesDir = path.join(__dirname, '../queries');
+      resolvedPath = path.join(queriesDir, queryFilePath);
+    }
+    
+    return await fsPromises.readFile(resolvedPath, 'utf8');
+  }
+  
+  console.error('Error: Query is required. Use -q <query> or -f <file>.');
+  console.error(`\nAvailable query files for '${GRAMMAR}':`);
+  try {
+    fs.readdirSync(path.join(__dirname, '../queries'))
+      .filter(f => f.toLowerCase().startsWith(GRAMMAR.toLowerCase()) && f.endsWith('.scm'))
+      .forEach(f => console.error(`  - ${f}`));
+  } catch (e) {
+    // Silently ignore error, as the old version did not handle this case either.
+  }
+  process.exit(1);
+}
+
+// Execute query on a file
+async function queryFile(filePath, query) {
+  try {
+    const sourceCode = await fsPromises.readFile(filePath, 'utf8');
+    const tree = parser.parse(sourceCode);
+    
+    if (!tree) {
+      console.error(`[ast-tools-query] Failed to parse: ${filePath}`);
+      return null;
+    }
+    
+    if (tree.rootNode.hasError) {
+      console.error(`[ast-tools-query] Parse errors in: ${filePath}`);
+    }
+    
+    if (matchesMode) {
+      // Use matches() for per-match grouping (each match has its own scoped captures)
+      const matches = query.matches(tree.rootNode);
+      const matchResults = matches.map(m => {
+        const captureData = compactOutput
+          ? m.captures.map(c => ({
+              name: c.name,
+              text: c.node.text,
+              type: c.node.type
+            }))
+          : m.captures.map(c => ({
+              name: c.name,
+              text: c.node.text,
+              type: c.node.type,
+              startPosition: c.node.startPosition,
+              endPosition: c.node.endPosition,
+              startByte: c.node.startIndex,
+              endByte: c.node.endIndex
+            }));
+        return {
+          file: filePath,
+          patternIndex: m.pattern,
+          captureCount: m.captures.length,
+          captures: captureData
+        };
+      });
+      return matchResults.length > 0 ? matchResults : null;
+    }
+
+    const captures = query.captures(tree.rootNode);
+    
+    const captureData = compactOutput
+      ? captures.map(c => ({
+          name: c.name,
+          text: c.node.text,
+          type: c.node.type
+        }))
+      : captures.map(c => ({
+          name: c.name,
+          text: c.node.text,
+          type: c.node.type,
+          startPosition: c.node.startPosition,
+          endPosition: c.node.endPosition,
+          startByte: c.node.startIndex,
+          endByte: c.node.endIndex
+        }));
+    
+    return {
+      file: filePath,
+      captureCount: captures.length,
+      captures: captureData
+    };
+  } catch (error) {
+    console.error(`[ast-tools-query] Error processing ${filePath}:`, error.message);
+    return null;
+  }
+}
+
+// Format output
+function formatOutput(results, format) {
+  switch (format) {
+    case 'json':
+      return JSON.stringify(results, null, 2);
+    
+    case 'text':
+      let output = '';
+      for (const result of results) {
+        if (!result) continue;
+        output += `# ${result.file}\n`;
+        output += `Captures: ${result.captureCount}\n`;
+        for (const capture of result.captures) {
+          output += `  @${capture.name} [${capture.startPosition.row + 1}:${capture.startPosition.column}]: ${capture.text.split('\n')[0]}\n`;
+        }
+        output += '\n';
+      }
+      return output;
+    
+    case 'xml':
+      let xml = '<query-results>\n';
+      for (const result of results) {
+        if (!result) continue;
+        xml += `  <file path="${escapeXml(result.file)}" captures="${result.captureCount}">\n`;
+        for (const capture of result.captures) {
+          xml += `    <capture name="${escapeXml(capture.name)}" `;
+          xml += `line="${capture.startPosition.row + 1}" `;
+          xml += `column="${capture.startPosition.column}">\n`;
+          xml += `      ${escapeXml(capture.text)}\n`;
+          xml += `    </capture>\n`;
+        }
+        xml += `  </file>\n`;
+      }
+      xml += '</query-results>\n';
+      return xml;
+    
+    default:
+      console.error(`Unknown format: ${format}`);
+      return JSON.stringify(results, null, 2);
+  }
+}
+
+function escapeXml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+// Main execution
+async function main() {
+  const queryStr = await loadQueryString();
+  
+  let query;
+  try {
+    query = new Parser.Query(Grammar, queryStr);
+  } catch (error) {
+    console.error('Error: Invalid query syntax');
+    console.error(error.message);
+    process.exit(1);
+  }
+  
+  const results = [];
+  
+  // Process files from stdin
+  const readline = require('readline');
+  const rl = readline.createInterface({ input: process.stdin });
+  
+  const jobs = [];
+  rl.on('line', (file) => {
+    jobs.push(queryFile(file.trim(), query));
+  });
+  
+  rl.once('close', async () => {
+    const fileResults = await Promise.all(jobs);
+    if (matchesMode) {
+      // In matches mode, each file returns an array of match results
+      for (const fr of fileResults) {
+        if (fr !== null) results.push(...fr);
+      }
+    } else {
+      results.push(...fileResults.filter(r => r !== null && r.captureCount > 0));
+    }
+    console.log(formatOutput(results, outputFormat));
+  });
+}
+
+main().catch(error => {
+  console.error('Fatal error:', error);
+  process.exit(1);
+});
