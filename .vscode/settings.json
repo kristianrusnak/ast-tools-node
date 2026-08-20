@@ -1,0 +1,14 @@
+{
+  // Disable RooCode telemetry by setting VS Code global telemetry level to "off".
+  // RooCode checks vscode telemetry.telemetryLevel and only sends data when it equals "all".
+  // Valid values: "all" | "error" | "crash" | "off"
+  "telemetry.telemetryLevel": "off",
+  // Enable browser automation powered by Playwright
+  "kilo-code.new.browserAutomation.enabled": true,
+  // Generated/modified by AI RooCode 3.51.1, used model google/claude-sonnet-4-6
+  // Disable all GitHub Copilot / VS Code AI features (inline suggestions, chat, etc.)
+  // Introduced in VS Code 1.97. To restore, run: "Chat: Use AI Features with Copilot for free" from the Command Palette.
+  "chat.disableAIFeatures": true,
+  // terribly anoying, is this correct key ?
+  "kilo-code.new.autocomplete.enableAutoTrigger":false
+}

@@ -1,0 +1,26 @@
+name: "RÉA - bash introduce MAIN guard"
+order: 15
+prompt: |
+  Introduce main-guard contruction in this script: ${filePath}:${startLine}-${endLine}
+
+  The main goal of this refactoring is to: 
+  - enable the script to be sourced without executing `main body`
+  - make functions (if any are declared) to be usable when sourced, specially for testing purposes
+  - pay special attention to arg parsing and self documented script parts
+  - do not extract existing main body to separate main function, that is not a goal, 
+    only enclose the executable body in the guard block. 
+
+  Example:
+  ```bash
+
+  # main, executed only when not sourced  
+  if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  
+  fi
+  ```
+
+
+showInLightbulb: true
+codeActionKind: "refactor.extract"
+target: "task"
+

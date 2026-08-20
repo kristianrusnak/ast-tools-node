@@ -1,0 +1,9 @@
+name: "Add to Chat Context"
+order: 100
+prompt: |
+  ${filePath}:${startLine}-${endLine}
+  ```
+  ${selectedText}
+  ```
+showInLightbulb: false
+target: "context"

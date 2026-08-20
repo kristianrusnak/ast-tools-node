@@ -1,0 +1,12 @@
+name: "Fix (with diagnostics)"
+order: 5
+prompt: |
+  Fix the following code from ${filePath}:${startLine}-${endLine}
+  ${diagnosticText}
+
+  ```
+  ${selectedText}
+  ```
+showInLightbulb: true
+codeActionKind: "quickfix"
+target: "task"

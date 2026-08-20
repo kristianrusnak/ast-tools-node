@@ -1,0 +1,16 @@
+name: "Add Documentation"
+order: 30
+prompt: |
+  Add documentation (JSDoc / docstrings / comments) for the following code from ${filePath}:${startLine}-${endLine}
+
+  ```
+  ${selectedText}
+  ```
+
+  Guidelines:
+  - Document all parameters, return values, and thrown errors
+  - Include usage examples where helpful
+  - Follow the project's existing documentation style
+showInLightbulb: true
+codeActionKind: "refactor"
+target: "task"

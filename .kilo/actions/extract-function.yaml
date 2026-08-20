@@ -1,0 +1,18 @@
+name: "Extract Function"
+order: 15
+prompt: |
+  Extract the selected code from ${filePath}:${startLine}-${endLine} into a well-named function.
+
+  ```
+  ${selectedText}
+  ```
+
+  Requirements:
+  1. Choose a descriptive function name
+  2. Determine minimal parameter list from used variables
+  3. Determine return value(s)
+  4. Replace the original code with a call to the new function
+  5. Preserve all existing behaviour
+showInLightbulb: true
+codeActionKind: "refactor.extract"
+target: "task"

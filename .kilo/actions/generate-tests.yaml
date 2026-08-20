@@ -1,0 +1,16 @@
+name: "Generate Tests"
+order: 20
+prompt: |
+  Generate unit tests for the following code from ${filePath}:${startLine}-${endLine}
+
+  ```
+  ${selectedText}
+  ```
+
+  Please:
+  1. Create comprehensive test cases covering edge cases
+  2. Use the existing testing framework in the project
+  3. Include assertions for all expected behaviours
+showInLightbulb: true
+codeActionKind: "refactor"
+target: "task"

@@ -1,0 +1,26 @@
+// WHY THIS FILE EXISTS
+// ---------------------
+// This is a VS Code IDE-only file. Node.js, npm, and all build tools ignore it completely.
+//
+// VS Code ships a built-in TypeScript Language Service (tsserver) that activates on ALL
+// JavaScript files — including extensionless scripts with a "#!/usr/bin/env node" shebang.
+// Without this file, tsserver treats every file it opens here as part of an "implicit project"
+// and reports false-positive errors (e.g. on JSDoc comments, import statements in
+// extensionless files, etc.).
+//
+// This jsconfig.json creates an EXPLICIT project root for this directory, which:
+//   1. Prevents tsserver from inheriting workspace-level implicit-project defaults
+//   2. Sets checkJs:false so the TS type-checker is silent on plain JS files
+//   3. Declares NodeNext module resolution so ESM import/export in extensionless
+//      scripts (gitlab-search-blobs, gitlab-search-all-projects) is understood correctly
+//
+// The scripts here are intentionally extensionless so they can be any language in future.
+// This file only affects what VS Code shows in the Problems panel — nothing else.
+{
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "checkJs": false,
+    "noEmit": true
+  }
+}

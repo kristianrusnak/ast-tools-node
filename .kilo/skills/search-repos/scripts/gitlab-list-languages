@@ -1,0 +1,229 @@
+#!/usr/bin/env node
+'use strict';
+// gitlab-list-languages — list dominant programming languages per GitLab project in a scope
+// Generated/modified by AI Kilo Code 7.4.20-gratex-010, used model deepseek-v4-flash
+//
+// Uses GET /api/v4/projects/:id/languages (analogous to GitHub /repos/:owner/:repo/languages).
+// Available on Community Edition. Returns a map { "Language": share%, ... } sorted desc.
+//
+// Scope URL formats (same as gitlab-search-all-projects-v3):
+//   https://host/group/*          -> all projects in group + subgroups
+//   https://host/*/*              -> all accessible projects on instance
+//   https://host/group/project    -> single project (fast path)
+//
+// Usage:
+//   gitlab-list-languages <scope_url> [options]
+//
+// Options:
+//   --concurrency <n>    Max parallel project queries (default: 8)
+//   --json               Output a single JSON array (default: JSON Lines)
+//
+// Output (default): JSON Lines, one object per project, emitted as soon as ready
+// Output (--json):  Single JSON array after all projects processed
+//
+// Each entry:
+//   { "project_id": 42, "project_path": "group/project", "default_branch": "main",
+//     "languages": { "JavaScript": 83.78, "TypeScript": 16.22 } }
+//
+// The `languages` map is empty {} when GitLab has not computed languages for the repo.
+//
+// Required env vars:
+//   GITLAB_SEARCH_URI    — GitLab API base, e.g. https://gitlab.example.com/api/v4
+//   GITLAB_SEARCH_TOKEN  — Personal access token with read_api scope
+
+const api = require('./gitlab-api.js');
+
+// ---------------------------------------------------------------------------
+// Async queue — decouples producer from consumer pool (same as v3)
+// ---------------------------------------------------------------------------
+function makeQueue() {
+  const items = [];
+  const waiters = [];
+  let done = false;
+
+  return {
+    push(item) {
+      if (waiters.length > 0) waiters.shift()(item);
+      else items.push(item);
+    },
+    close() {
+      done = true;
+      while (waiters.length > 0) waiters.shift()(null);
+    },
+    pop() {
+      if (items.length > 0) return Promise.resolve(items.shift());
+      if (done) return Promise.resolve(null);
+      return new Promise(resolve => waiters.push(resolve));
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Arg parsing
+// ---------------------------------------------------------------------------
+function parseArgs(argv) {
+  const opts = { scopeUrl: null, concurrency: 8, json: false };
+  let i = 0;
+  if (argv[i] && !argv[i].startsWith('--')) opts.scopeUrl = argv[i++];
+  while (i < argv.length) {
+    switch (argv[i]) {
+      case '--concurrency': opts.concurrency = parseInt(argv[++i], 10); break;
+      case '--json':        opts.json        = true; break;
+      default:
+        process.stderr.write('Unknown option: ' + argv[i] + '\n');
+        process.exit(1);
+    }
+    i++;
+  }
+  if (!opts.scopeUrl) {
+    process.stderr.write('Usage: gitlab-list-languages <scope_url> [options]\n');
+    process.exit(1);
+  }
+  return opts;
+}
+
+// ---------------------------------------------------------------------------
+// Scope detection — same as v3
+// ---------------------------------------------------------------------------
+function detectScope(scopeUrl) {
+  const url = new URL(scopeUrl.trim());
+  const parts = url.pathname.replace(/^\//, '').split('/').filter(Boolean);
+  if (parts.length === 0) return { type: 'all' };
+  if (parts[parts.length - 1] === '*') {
+    if (parts.length === 1 || (parts.length === 2 && parts[0] === '*')) return { type: 'all' };
+    return { type: 'group', group: parts.slice(0, -1).join('/') };
+  }
+  return { type: 'project', path: parts.join('/') };
+}
+
+// ---------------------------------------------------------------------------
+// Fetch languages for one project — empty map on any error (e.g. empty repo)
+// ---------------------------------------------------------------------------
+async function fetchLanguages(uri, token, projectId) {
+  try {
+    const url = uri + '/projects/' + api.encodeProject(projectId) + '/languages';
+    const resp = await api.apiFetch(url, token);
+    const data = await resp.json();
+    return data && typeof data === 'object' ? data : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Producer: fetch all project list pages, push each project into queue
+// ---------------------------------------------------------------------------
+async function producer(queue, uri, token, listUrl, onProgress) {
+  let url = listUrl;
+  let totalFetched = 0;
+  while (url) {
+    const resp = await api.apiFetch(url, token);
+    const page = await resp.json();
+    if (!Array.isArray(page) || page.length === 0) break;
+    for (const project of page) queue.push(project);
+    totalFetched += page.length;
+    onProgress(totalFetched);
+    const nextPage = resp.headers.get('x-next-page');
+    if (!nextPage) break;
+    const u = new URL(url);
+    u.searchParams.set('page', nextPage);
+    url = u.toString();
+  }
+  queue.close();
+  return totalFetched;
+}
+
+// ---------------------------------------------------------------------------
+// Consumer: pull projects from queue, fetch languages, emit results
+// ---------------------------------------------------------------------------
+async function consumer(queue, uri, token, opts, onResult) {
+  while (true) {
+    const project = await queue.pop();
+    if (project === null) break;
+
+    const languages = await fetchLanguages(uri, token, project.id);
+
+    onResult({
+      project_id: project.id,
+      project_path: project.path_with_namespace,
+      default_branch: project.default_branch,
+      languages,
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+async function main() {
+  const opts = parseArgs(process.argv.slice(2));
+  const { uri, token } = api.requireEnv();
+  const scope = detectScope(opts.scopeUrl);
+
+  process.stderr.write('🗂  Listing languages per project\n');
+  process.stderr.write('   Scope:       ' + opts.scopeUrl + '\n');
+  process.stderr.write('   Concurrency: ' + opts.concurrency + '\n\n');
+
+  // Single-project fast path
+  if (scope.type === 'project') {
+    process.stderr.write('📁 Single-project mode: ' + scope.path + '\n\n');
+    const projResp = await api.apiFetch(uri + '/projects/' + encodeURIComponent(scope.path), token);
+    const project = await projResp.json();
+    const languages = await fetchLanguages(uri, token, project.id);
+    const entry = {
+      project_id: project.id,
+      project_path: project.path_with_namespace,
+      default_branch: project.default_branch,
+      languages,
+    };
+    if (opts.json) {
+      process.stdout.write(JSON.stringify([entry], null, 2) + '\n');
+    } else {
+      process.stdout.write(JSON.stringify(entry) + '\n');
+      process.stderr.write('📄 ' + project.path_with_namespace + '\n');
+    }
+    process.stderr.write('\n✅ Done! 1 project listed.\n');
+    return;
+  }
+
+  const listUrl = scope.type === 'group'
+    ? uri + '/groups/' + encodeURIComponent(scope.group) + '/projects?include_subgroups=true&per_page=100'
+    : uri + '/projects?membership=true&per_page=100';
+
+  const queue = makeQueue();
+  const allResults = opts.json ? [] : null;
+  let totalProjects = 0;
+  let totalListed = 0;
+
+  function onResult(entry) {
+    totalListed++;
+    if (opts.json) {
+      allResults.push(entry);
+    } else {
+      process.stdout.write(JSON.stringify(entry) + '\n');
+    }
+    if (totalListed % 10 === 0) {
+      process.stderr.write('   Listed ' + totalListed + '/' + (totalProjects || '?') + ' projects...\n');
+    }
+  }
+
+  const producerPromise = producer(
+    queue, uri, token, listUrl,
+    (n) => { totalProjects = n; }
+  );
+
+  const consumerPromises = Array.from(
+    { length: opts.concurrency },
+    () => consumer(queue, uri, token, opts, onResult)
+  );
+
+  await Promise.all([producerPromise, ...consumerPromises]);
+
+  if (opts.json) {
+    process.stdout.write(JSON.stringify(allResults, null, 2) + '\n');
+  }
+
+  process.stderr.write('\n✅ Done! Listed languages for ' + totalListed + ' project(s).\n');
+}
+
+main().catch(err => { process.stderr.write('Fatal: ' + err.message + '\n'); process.exit(1); });

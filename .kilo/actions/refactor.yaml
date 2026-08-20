@@ -1,0 +1,17 @@
+name: "Refactor Code"
+order: 10
+prompt: |
+  Refactor the following code from ${filePath}:${startLine}-${endLine}
+
+  ```
+  ${selectedText}
+  ```
+
+  Please:
+  1. Extract complex logic into smaller functions
+  2. Apply SOLID principles
+  3. Maintain backward compatibility
+  4. Explain each refactoring decision
+showInLightbulb: true
+codeActionKind: "refactor"
+target: "task"

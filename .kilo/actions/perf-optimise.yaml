@@ -1,0 +1,20 @@
+name: "Performance Optimisation"
+order: 50
+prompt: |
+  Analyse the performance of the following code from ${filePath}:${startLine}-${endLine}
+
+  ```
+  ${selectedText}
+  ```
+
+  Identify:
+  1. Unnecessary allocations or copies
+  2. O(n²) or worse algorithms that could be improved
+  3. Missing memoisation / caching opportunities
+  4. Blocking I/O that could be made async
+  5. Hot paths that could benefit from parallelism
+
+  Suggest concrete improvements with before/after complexity estimates.
+showInLightbulb: true
+codeActionKind: "refactor.rewrite"
+target: "task"

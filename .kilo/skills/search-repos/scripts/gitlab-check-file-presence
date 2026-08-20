@@ -1,0 +1,273 @@
+#!/usr/bin/env node
+'use strict';
+// gitlab-check-file-presence — check whether specific files, directories, or glob patterns
+// exist across GitLab projects in a scope.
+//
+// Three detection modes — determined by the argument syntax, no heuristics:
+//
+//   FILE    — arg has no trailing "/" and no "*" or "?"
+//             Uses HEAD /repository/files/:encoded_path?ref=<branch>
+//             HTTP 200 = exists, 404 = absent. No content downloaded.
+//             Examples: "AGENTS.md"  ".roo/mcp.json"  "Dockerfile"  ".gitignore"  ".roo"
+//
+//   DIR     — arg ends with "/"
+//             Uses GET /repository/tree?path=<dir>&ref=<branch>&per_page=1
+//             Reports true if the directory exists and contains at least one entry.
+//             Examples: ".roo/"  "src/"  ".github/"
+//
+//   GLOB    — arg contains "*" or "?"
+//             Uses GET /repository/tree?path=<parent>&ref=<branch> and filters entries
+//             by the glob pattern. Reports true if ≥1 entry name matches.
+//             The tree API returns both files (type:"blob") AND directories (type:"tree"),
+//             so ".roo*" matches the ".roo" directory entry AND files like ".roomodes".
+//             Examples: ".roo*"  "*.yml"  "src/*.json"
+//
+// Works on Free tier — no Elasticsearch required.
+//
+// Required env vars (set by AI agent from .roo/mcp.json for the matching host):
+//   GITLAB_SEARCH_URI    — GitLab API base, e.g. https://gitlab.example.com/api/v4
+//   GITLAB_SEARCH_TOKEN  — Personal access token with read_api scope
+//
+// Usage:
+//   gitlab-check-file-presence <scope_url> <arg> [<arg2> ...] [options]
+//
+// Options:
+//   --concurrency <n>   Max parallel project checks (default: 10)
+//   --any-branch        Check all branches; short-circuit on first match
+//
+// Output: JSON array to stdout. Each element:
+//   {
+//     "server":         "ashlin",          // short hostname fragment
+//     "project_path":   "group/repo",
+//     "default_branch": "main",
+//     "paths": {
+//       "AGENTS.md": { "state": "found_main",     "branch": "main" },
+//       ".roo/":     { "state": "not_found_main", "branch": null   },
+//       ".roo*":     { "state": "found_some",     "branch": "dev"  },
+//       ".kilo*":    { "state": "not_found_any",  "branch": null   }
+//     }
+//   }
+//
+// State values:
+//   "found_main"     — found on the default branch (without --any-branch, or with it)
+//   "not_found_main" — not found on default branch; other branches not checked
+//   "found_some"     — found on some non-default branch (only possible with --any-branch)
+//   "not_found_any"  — not found on any branch (only with --any-branch)
+//
+// Progress/summary is written to stderr. Pipe stdout to jq for rendering.
+// See SKILL.md for jq recipes (TSV, Markdown table).
+
+const api = require('./gitlab-api.js');
+
+// ── Mode detection ────────────────────────────────────────────────────────────
+
+function detectMode(arg) {
+  if (arg.includes('*') || arg.includes('?')) return 'glob';
+  if (arg.endsWith('/'))                       return 'dir';
+  return 'file';
+}
+
+// Convert a glob pattern to a RegExp (supports * and ?)
+function globToRegex(pattern) {
+  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&')
+                         .replace(/\*/g, '.*')
+                         .replace(/\?/g, '.');
+  return new RegExp('^' + escaped + '$');
+}
+
+// ── API helpers ───────────────────────────────────────────────────────────────
+
+async function checkFile(uri, token, projectId, branch, filePath) {
+  const encoded = filePath.split('/').map(encodeURIComponent).join('%2F');
+  const url = uri + '/projects/' + projectId + '/repository/files/' + encoded
+    + '?ref=' + encodeURIComponent(branch);
+  try {
+    const res = await fetch(url, {
+      method: 'HEAD',
+      headers: { 'Authorization': 'Bearer ' + token },
+    });
+    return res.status === 200;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function checkDirectory(uri, token, projectId, branch, dirArg) {
+  const dirPath = dirArg.replace(/\/$/, '');
+  const url = uri + '/projects/' + projectId + '/repository/tree'
+    + '?path=' + encodeURIComponent(dirPath)
+    + '&ref=' + encodeURIComponent(branch)
+    + '&per_page=1';
+  try {
+    const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+    if (!res.ok) return false;
+    const data = await res.json();
+    return Array.isArray(data) && data.length > 0;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function checkGlob(uri, token, projectId, branch, globArg) {
+  const lastSlash = globArg.lastIndexOf('/');
+  const parentDir = lastSlash >= 0 ? globArg.slice(0, lastSlash) : '';
+  const pattern   = lastSlash >= 0 ? globArg.slice(lastSlash + 1) : globArg;
+  const regex = globToRegex(pattern);
+
+  let page = 1;
+  const perPage = 100;
+  while (true) {
+    const url = uri + '/projects/' + projectId + '/repository/tree'
+      + '?path=' + encodeURIComponent(parentDir)
+      + '&ref=' + encodeURIComponent(branch)
+      + '&per_page=' + perPage
+      + '&page=' + page;
+    try {
+      const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) return false;
+      if (data.some(function(entry) { return regex.test(entry.name); })) return true;
+      if (data.length < perPage) return false;
+      page++;
+    } catch (_) {
+      return false;
+    }
+  }
+}
+
+async function checkPath(uri, token, projectId, branch, arg) {
+  const mode = detectMode(arg);
+  if (mode === 'glob') return checkGlob(uri, token, projectId, branch, arg);
+  if (mode === 'dir')  return checkDirectory(uri, token, projectId, branch, arg);
+  return checkFile(uri, token, projectId, branch, arg);
+}
+
+// Check if path exists on ANY branch (short-circuit: stop at first match).
+// Returns { state, branch } where state is "found_main", "found_some", or "not_found_any".
+async function checkPathAnyBranch(uri, token, projectId, defaultBranch, arg) {
+  const branchesUrl = uri + '/projects/' + projectId + '/repository/branches?per_page=100';
+  let branches;
+  try {
+    const res = await fetch(branchesUrl, { headers: { 'Authorization': 'Bearer ' + token } });
+    if (!res.ok) return { state: 'not_found_any', branch: null };
+    branches = await res.json();
+    if (!Array.isArray(branches)) return { state: 'not_found_any', branch: null };
+  } catch (_) {
+    return { state: 'not_found_any', branch: null };
+  }
+
+  for (const b of branches) {
+    const branchName = b.name;
+    const found = await checkPath(uri, token, projectId, branchName, arg);
+    if (found) {
+      const state = branchName === defaultBranch ? 'found_main' : 'found_some';
+      return { state: state, branch: branchName };
+    }
+  }
+  return { state: 'not_found_any', branch: null };
+}
+
+// ── CLI ───────────────────────────────────────────────────────────────────────
+
+function parseArgs(argv) {
+  const opts = { scopeUrl: null, paths: [], concurrency: 10, anyBranch: false };
+  let i = 0;
+  if (argv[i] && !argv[i].startsWith('--')) opts.scopeUrl = argv[i++];
+  while (i < argv.length) {
+    switch (argv[i]) {
+      case '--concurrency': opts.concurrency = parseInt(argv[++i], 10); break;
+      case '--any-branch':  opts.anyBranch = true; break;
+      default:
+        if (!argv[i].startsWith('--')) {
+          opts.paths.push(argv[i]);
+        } else {
+          console.error('Unknown option: ' + argv[i]);
+          process.exit(1);
+        }
+    }
+    i++;
+  }
+  return opts;
+}
+
+async function main() {
+  const opts = parseArgs(process.argv.slice(2));
+
+  if (!opts.scopeUrl || opts.paths.length === 0) {
+    console.error('Usage: gitlab-check-file-presence <scope_url> <arg> [<arg2> ...] [--concurrency 10] [--any-branch]');
+    console.error('');
+    console.error('  File (no trailing slash, no wildcards): AGENTS.md  .roo/mcp.json  .gitignore');
+    console.error('  Directory (trailing slash required):    .roo/  src/  .github/');
+    console.error('  Glob (contains * or ?):                 .roo*  *.yml  src/*.json');
+    console.error('  --any-branch: check all branches, show which branch has the file');
+    console.error('');
+    console.error('Output: JSON array to stdout. See SKILL.md for jq rendering recipes.');
+    process.exit(1);
+  }
+
+  const { uri, token } = api.requireEnv();
+  const { group } = api.parseScopeUrl(opts.scopeUrl);
+  const serverHost = new URL(opts.scopeUrl).hostname;
+  // Strip last 2 domain parts (TLD + registrable domain) to get a meaningful short name.
+  // e.g. gitlab.ashlin.gratex.ai → gitlab.ashlin   gitlab01.hq.gratex.com → gitlab01.hq
+  const hostParts = serverHost.split('.');
+  const serverShort = hostParts.length > 2 ? hostParts.slice(0, -2).join('.') : hostParts[0];
+
+  process.stderr.write('🔍 File/directory/glob presence check\n');
+  process.stderr.write('   Scope:  ' + opts.scopeUrl + '\n');
+  opts.paths.forEach(function(p) {
+    process.stderr.write('   Check:  ' + p + '  [' + detectMode(p) + ']\n');
+  });
+  process.stderr.write('   API:    ' + uri + '\n\n');
+
+  // Enumerate projects
+  const listUrl = group
+    ? uri + '/groups/' + encodeURIComponent(group) + '/projects?include_subgroups=true&per_page=100'
+    : uri + '/projects?membership=true&per_page=100';
+
+  process.stderr.write('📋 Enumerating projects...\n');
+  const projects = await api.fetchAllPages(token, listUrl);
+  process.stderr.write('   Found ' + projects.length + ' project(s)\n\n');
+
+  // Check each project × each path in parallel (pool across projects)
+  const tasks = projects.map(function(project) {
+    return async function() {
+      const branch = project.default_branch || 'main';
+      const checks = await Promise.all(
+        opts.paths.map(function(p) {
+          if (opts.anyBranch) {
+            return checkPathAnyBranch(uri, token, project.id, branch, p);
+          }
+          return checkPath(uri, token, project.id, branch, p).then(function(r) {
+            return { state: r ? 'found_main' : 'not_found_main', branch: r ? branch : null };
+          });
+        })
+      );
+      const pathMap = {};
+      opts.paths.forEach(function(p, idx) { pathMap[p] = checks[idx]; });
+      return {
+        server: serverShort,
+        project_path: project.path_with_namespace,
+        default_branch: branch,
+        paths: pathMap,
+      };
+    };
+  });
+
+  const settled = await api.pool(tasks, opts.concurrency);
+  const results = settled
+    .filter(function(o) { return o.status === 'fulfilled'; })
+    .map(function(o) { return o.value; });
+
+  console.log(JSON.stringify(results, null, 2));
+
+  const matchCount = results.filter(function(r) {
+    return Object.values(r.paths).some(function(p) {
+      return p.state === 'found_main' || p.state === 'found_some';
+    });
+  }).length;
+  process.stderr.write('\n📊 ' + matchCount + ' project(s) with at least one match out of ' + results.length + ' scanned.\n');
+}
+
+main().catch(function(err) { console.error('Fatal:', err.message); process.exit(1); });

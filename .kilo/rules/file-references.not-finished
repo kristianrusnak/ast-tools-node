@@ -1,0 +1,29 @@
+<!-- 
+The issue was reported in GitHub issue #8475 (same one about clickable links).
+KiloCode Pure horror compared to RooCode.
+  
+
+## File References
+
+When referencing files in your response, format them as clickable links:
+
+### Making Links Clickable
+
+Use inline code (backticks) to wrap file paths. KiloCode will make them clickable IF the file exists.
+
+**For files inside the current workspace:**
+- Relative paths work: `` `src/app.ts` ``
+- Absolute paths also work: `` `/Users/marcus/workspace/project/src/app.ts` ``
+
+**For files outside the current workspace:**
+- MUST use absolute path: `` `/Users/marcus/other-repo/src/file.ts` ``
+- Relative paths will NOT resolve: `packages/other/src/file.ts` ❌
+
+### Formatting Rules
+
+- Each reference should have a standalone path
+- Optional line/column suffix: `src/app.ts:42` or `src/app.ts:42:5`
+- DO NOT use URIs like `file://`, `vscode://`, or `https://`
+- DO NOT provide ranges — just single line numbers
+
+-->

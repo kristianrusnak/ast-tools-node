@@ -1,0 +1,143 @@
+#!/usr/bin/env node
+
+
+/*
+
+## Validates AST of given files and checks if the contain errors.
+## In: list of files and grammar
+## Out: tab delimitied OK|Err and file name
+##
+## Return values:
+##   OK    - file parsed successfully
+##   ERR   - file has syntax errors
+##   ERRR  - file has recoverable errors
+##   EX    - Exception during processing (e.g. file not found) or parsing failed without a tree (e.g. timeout)
+##
+## Version: 2.1 (recoverable errors marged with ERRR)
+##
+## Usage: 
+##    <list-of-files> | ast-tools-validate <grammar>
+##    or
+##    ast-tools-validate <grammar> <file>
+##    
+## Samples:
+##   
+##    find . -iname *.sh | ast-tools-validate bash 
+##
+##    ast-tools-validate bash "_sample_repos/spikes/bash/tee-example2.sh"
+##    ast-tools-validate c-sharp "_sample_repos/spikes/csharp/AssemblyInfo.cs"
+##    ast-tools-validate css "_sample_repos/spikes/css/imports.css"
+##    ast-tools-validate gitattributes ".gitattributes"
+##    ast-tools-validate html "_sample_repos/spikes/html/mix-inline-script.htm"
+##    ast-tools-validate java "_sample_repos/spikes/java/Infer.java"
+##    ast-tools-validate plsql "_sample_repos/spikes/sql/chinook-mysql.sql"
+##    ast-tools-validate python "_sample_repos/spikes/call_commands-for-python-536/multiple_calls.py"
+##    ast-tools-validate sql "_sample_repos/spikes/sql/chinook-mysql.sql"
+##    ast-tools-validate toml "_sample_repos/spikes/python-pip-tools-project518/pyproject.toml"
+##    ast-tools-validate typescript/tsx "_sample_repos/spikes/test.tsx"
+##    ast-tools-validate typescript/typescript "_sample_repos/spikes/TypeScriptSamples/angular1/app/app.ts"
+##
+##    $ ls -1 *.* | ast-tools-validate bash
+##  
+##     ERR README.md
+##     OK  init.local
+##     ERR package.json
+##     ERR package-lock.json
+##     ERRR script.sh #recoverable errors 
+*/
+
+if (
+  // Check for explicit help flags
+  process.argv[2] === '-h' ||
+  process.argv[2] === '--help' ||
+  // If running with TTY (direct input), expect 4 arguments: node, script, grammar, file
+  (process.stdin.isTTY && process.argv.length !== 4) ||
+  // If running without TTY (piped input), expect 3 arguments: node, script, grammar
+  (!process.stdin.isTTY && process.argv.length !== 3)
+) {
+  console.error(
+    require('fs').readFileSync(__filename, 'utf8')
+      .match(/^## ?.*/gm)
+      .map(line => line.replace(/^## ?/, ''))
+      .join('\n')
+  );
+  process.exit(1);
+}
+
+const TIMEOUT=1*1000*1000; //1 second in microseconds
+const [, , GRAMMAR, FILE] = process.argv;
+
+const Parser = require('tree-sitter');
+const Grammar = require('tree-sitter-' + GRAMMAR);
+const fs = require('node:fs').promises;
+
+const parser = new Parser();
+parser.setLanguage(Grammar);
+parser.setTimeoutMicros(TIMEOUT); //to be fast, if ast-tools-parse succeeds but parsing is very slow
+
+
+if (FILE) {
+  parseFile(FILE, write);
+} else {
+  parseFilesFromStdId();
+}
+
+function parseFilesFromStdId() {
+  const readline = require("readline");
+  let fl = 0;
+  let jobs = [];
+  readline.createInterface({ input: process.stdin })
+    .on('line', (FILE) => {
+      const done = parseFile(FILE, write);
+      jobs.push(done);
+    })
+    .once('close', () => {
+      Promise.all(jobs).then(() => { })
+    });
+}
+
+function parseFile(file, write) {
+  return fs.readFile(file, 'utf8').then((data) => {
+    try {
+
+      const tree = parser.parse(data);
+      let flag;
+      if (!tree) {
+        flag = "EX";
+        console.error("No tree generated for file, possible timeout see full parse with ast-tree-parse", file);
+      }
+      else if (tree.rootNode.hasError) {
+        flag = "ERR";
+
+        // hasErrors reports errors even if they are recoverable (like missing nodes, MISSING eol or MISSING :)
+        // these errors are not part fo the generated tree, so we need to look for ERROR nodes explicitly
+        // this would need to less ERR results, but actually we dont want this
+        // Uncomment to try finding ERROR nodes
+        // The output maybe inconsistent with ast-tools-parse, since there you will see no errors for recoverable errors
+
+        const errorQuery = new Parser.Query(Grammar, "(ERROR)");
+        const matches = errorQuery.matches(tree.rootNode);
+        if (matches.length) {
+          flag = "ERR";
+        } else {
+          //console.error("Root hasError but no ERROR nodes found in:", file);
+          flag = "ERRR";
+        }
+
+      }
+      else {
+        flag = "OK";
+      }
+
+      write(`${flag}\t${file}\n`)
+    } catch (ex) {
+
+      console.error(file, ex, tree && tree.rootNode.toString());
+      write(`EX\t${file}\n`)
+    }
+  });
+}
+
+function write(s) {
+  process.stdout.write(s);
+}

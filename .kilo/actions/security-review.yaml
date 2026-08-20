@@ -1,0 +1,20 @@
+name: "Security Review"
+order: 40
+prompt: |
+  Perform a security review of the following code from ${filePath}:${startLine}-${endLine}
+
+  ```
+  ${selectedText}
+  ```
+
+  Check for:
+  1. Injection vulnerabilities (SQL, XSS, command injection)
+  2. Authentication / authorization issues
+  3. Sensitive data exposure (hardcoded secrets, improper logging)
+  4. Race conditions and TOCTOU issues
+  5. Unsafe deserialization
+
+  Provide a severity rating for each finding and suggest fixes.
+showInLightbulb: true
+codeActionKind: "source"
+target: "task"
