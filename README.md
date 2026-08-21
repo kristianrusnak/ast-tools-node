@@ -31,12 +31,10 @@ javascript, markdown, python, sql, toml, typescript) plus `tree-sitter` and `xml
 declared in `package.json` and install with the package — so the package is self-contained
 for those grammars.
 
-**`plsql` is intentionally NOT bundled.** It is a cinderella-local grammar
-(`cinderella/tools/external/plsql-tools/tree-sitter-plsql`). When this package is installed
-into a host that already provides `tree-sitter-plsql` in its `node_modules` (as cinderella
-does via its own `tools/external/package.json`), the `require('tree-sitter-' + GRAMMAR)`
-inside these CLIs resolves it through Node's upward module lookup. Consumers that need
-`ast-tools-parse plsql` must provide that grammar themselves.
+**`plsql` is bundled.** The `tree-sitter-plsql` grammar is vendored in this repo at
+`tree-sitter-plsql/` and wired in via `file:./tree-sitter-plsql`, so `ast-tools-parse plsql`
+works out of the box. Its native binding is compiled at `npm install` via `node-gyp-build`
+(the `build/` output is git-ignored, like the other generated artifacts).
 
 ## Installing
 
