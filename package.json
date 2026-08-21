@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Stand-alone tree-sitter AST CLIs (parse / parse-stdin / dump / query / validate) with bundled query set. Extracted from cinderella tools/external/ast-tools.",
   "private": true,
-  "_aiProvenance": "Generated/modified by AI Kilo Code 7.4.17-gratex-009, used model qwen3.8-27b",
+  "_aiProvenance": "Generated/modified by AI Kilo Code 7.4.17-gratex-009, used model qwen3.8-27b. tree-sitter-c-sharp pinned to CJS 0.23.1 (0.23.5 is ESM-only and breaks require()). tree-sitter-plsql is bundled from cinderella (vendored at ./tree-sitter-plsql; native build via node-gyp-build, build/ is git-ignored); consider a published spec before going to registry/github.",
   "bin": {
     "ast-tools-dump": "bin/ast-tools-dump",
     "ast-tools-parse": "bin/ast-tools-parse",
@@ -20,7 +20,8 @@
   "dependencies": {
     "tree-sitter": "^0.22.4",
     "tree-sitter-bash": "^0.23.1",
-    "tree-sitter-c-sharp": "^0.23.0",
+    "tree-sitter-c-sharp": "0.23.1",
+    "tree-sitter-plsql": "file:./tree-sitter-plsql",
     "tree-sitter-css": "^0.23.1",
     "tree-sitter-gitattributes": "github:tree-sitter-grammars/tree-sitter-gitattributes",
     "tree-sitter-groovy": "github:murtaza64/tree-sitter-groovy#86911590a8e46d71301c66468e5620d9faa5b6af",

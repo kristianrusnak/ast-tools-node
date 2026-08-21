@@ -1,0 +1,33 @@
+{
+  "grammars": [
+    {
+      "name": "plsql",
+      "camelcase": "PLSQL",
+      "scope": "source.plsql",
+      "path": ".",
+      "file-types": ["fnc", "pls"],
+      "injection-regex": "^plsql$"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "Plsql grammar for tree-sitter",
+    "authors": [
+      {
+        "name": "AintheK"
+      }
+    ],
+    "links": {
+      "repository": "https://github.com/tree-sitter/tree-sitter-plsql"
+    }
+  },
+  "bindings": {
+    "c": true,
+    "go": true,
+    "node": true,
+    "python": true,
+    "rust": true,
+    "swift": true
+  }
+}
