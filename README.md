@@ -42,10 +42,10 @@ Intended distribution is a private `git+https` source (no public npm publish). C
 from a host package.json, pinning a tag:
 
 ```json
-"@ainthek/ast-tools-node": "git+https://github.com/ainthek/ast-tools-node.git#v1.0.0"
+"@ainthek/ast-tools-node": "git+https://github.com/kristianrusnak/ast-tools-node.git#v1.0.0"
 ```
 
 Its five `bin` entries are linked into the host's `node_modules/.bin`, exposing the
-`ast-tools-*` commands on `PATH`. For one-off use, `npx git+https://github.com/ainthek/ast-tools-node.git ast-tools-parse <…>` also works.
+`ast-tools-*` commands on `PATH`. For one-off use, `npx git+https://github.com/kristianrusnak/ast-tools-node.git ast-tools-parse <…>` also works.
 
 _Generated/modified by AI Kilo Code 7.4.17-gratex-009, used model qwen3.8-27b_
