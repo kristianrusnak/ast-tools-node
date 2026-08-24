@@ -15,6 +15,7 @@
     "bin",
     "src",
     "queries",
+    "tree-sitter-plsql",
     "README.md"
   ],
   "dependencies": {
