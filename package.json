@@ -1,17 +1,16 @@
 {
   "name": "@ainthek/ast-tools-node",
-  "version": "1.1.0",
+  "version": "1.1.3",
   "description": "Stand-alone tree-sitter AST CLIs (parse / parse-stdin / dump / query / validate) with bundled query set, plus ast-checksum. Extracted from cinderella tools/external/ast-tools.",
   "private": true,
-  "_aiProvenance": "Generated/modified by AI Kilo Code 7.4.17-gratex-009, used model qwen3.8-27b. (v1.1.0: ported ast-checksum plus its POSIX line-dedupe helper awk-uniq into bin/ from cinderella/tools/external/). tree-sitter-c-sharp pinned to CJS 0.23.1 (0.23.5 is ESM-only and breaks require()). tree-sitter-plsql is bundled from cinderella (vendored at ./tree-sitter-plsql; native build via node-gyp-build, build/ is git-ignored); consider a published spec before going to registry/github.",
+  "_aiProvenance": "Generated/modified by AI Kilo Code 7.4.22-gratex-016, used model deepseek-v4-flash. (v1.1.0: ported ast-checksum plus its POSIX line-dedupe helper awk-uniq into bin/ from cinderella/tools/external/). (v1.1.2: extracted the PATH bootstrap into the shared bin/_ast_tools.sh; bin/* shell CLIs source it with a one-liner so future tools inherit it without duplicating it.) (v1.1.3: reorganized bin/ into bin/ast/ (ast-tools-* node CLIs + ast-checksum) and bin/lib/ (shared _ast_tools.sh + awk-uniq); the PATH bootstrap now prepends both tool dirs; node tools' ../src and ../queries refs moved to ../../; public .bin commands unchanged.) tree-sitter-c-sharp pinned to CJS 0.23.1 (0.23.5 is ESM-only and breaks require()). tree-sitter-plsql is bundled from cinderella (vendored at ./tree-sitter-plsql; native build via node-gyp-build, build/ is git-ignored); consider a published spec before going to registry/github.",
   "bin": {
-    "ast-tools-dump": "bin/ast-tools-dump",
-    "ast-tools-parse": "bin/ast-tools-parse",
-    "ast-tools-parse-stdin": "bin/ast-tools-parse-stdin",
-    "ast-tools-query": "bin/ast-tools-query",
-    "ast-tools-validate": "bin/ast-tools-validate",
-    "ast-checksum": "bin/ast-checksum",
-    "awk-uniq": "bin/awk-uniq"
+    "ast-tools-dump": "bin/ast/ast-tools-dump",
+    "ast-tools-parse": "bin/ast/ast-tools-parse",
+    "ast-tools-parse-stdin": "bin/ast/ast-tools-parse-stdin",
+    "ast-tools-query": "bin/ast/ast-tools-query",
+    "ast-tools-validate": "bin/ast/ast-tools-validate",
+    "ast-checksum": "bin/ast/ast-checksum"
   },
   "files": [
     "bin",
