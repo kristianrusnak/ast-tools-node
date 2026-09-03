@@ -1,0 +1,23 @@
+#!/bin/bash
+
+
+
+
+## Better then sort -u, sorts but keeps the original order
+## Useful for cleaning PATH and other 'sorts'
+## 
+## Version: 0.1
+## 
+## Usage: 
+##
+## Samples:
+##     
+if [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ -t 0 ]
+then 
+	# shellcheck source=/dev/null
+	. _usage.sh "${BASH_SOURCE[0]}" 2 --strip_hashes 1;
+	exit 1
+fi
+
+# NTH: parametrize column 
+awk -F"\n" '!a[$0]++'
