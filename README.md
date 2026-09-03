@@ -1,5 +1,5 @@
 ---
-ai_marking: "Generated/modified by AI Kilo Code 7.4.17-gratex-009, used model qwen3.8-27b"
+ai_marking: "Generated/modified by AI Kilo Code 7.4.22-gratex-016, used model deepseek-v4-flash"
 ---
 
 # @ainthek/ast-tools-node
@@ -18,6 +18,16 @@ can be reused independently of cinderella.
 | `ast-tools-query <grammar> [-q \| -f] [--matches] [--format json\|text\|xml]` | Run a tree-sitter query against files from stdin; emit captures. |
 | `ast-tools-validate <grammar> [<file>]` | Report `OK`/`ERR`/`ERRR`/`EX` per file (syntax-error check with a 1s timeout). |
 | `ast-checksum <grammar> <file> [level]` | Hash a file's AST into three checksum columns: full tree / comment-filtered / comment-filtered + line-unique. |
+
+The bundled CLIs resolve their sibling `bin/` helpers automatically (each wrapper
+self-locates its directory and prepends the tool directories to `PATH`), so no manual
+PATH setup is needed on the consuming host after `npm install`. The source layout is
+hierarchical — `bin/ast/` holds the tree-sitter CLIs (`ast-tools-*`, `ast-checksum`) and
+`bin/lib/` holds shared helpers (`_ast_tools.sh`, `awk-uniq`) — but all seven `bin`
+entries still install into the host's single `node_modules/.bin`. The PATH bootstrap
+logic lives once in `bin/lib/_ast_tools.sh`; every shell CLI sources it with a one-liner
+at the top (see the usage comment in that file), so future tools inherit it without
+rewriting it.
 
 ## Queries
 
@@ -43,9 +53,9 @@ Intended distribution is a private `git+https` source (no public npm publish). C
 from a host package.json, pinning a tag:
 
 ```json
-"@ainthek/ast-tools-node": "git+https://github.com/kristianrusnak/ast-tools-node.git#v1.1.0"
+"@ainthek/ast-tools-node": "git+https://github.com/kristianrusnak/ast-tools-node.git#v1.1.3"
 ```
 
 Its seven `bin` entries (the five `ast-tools-*` CLIs, plus `ast-checksum` and the `awk-uniq` helper) are linked into the host's `node_modules/.bin`, putting all of them on `PATH`. For one-off use, `npx git+https://github.com/kristianrusnak/ast-tools-node.git ast-tools-parse <…>` also works.
 
-_Generated/modified by AI Kilo Code 7.4.17-gratex-009, used model qwen3.8-27b_
+_Generated/modified by AI Kilo Code 7.4.22-gratex-016, used model deepseek-v4-flash_
