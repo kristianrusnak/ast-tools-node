@@ -1,15 +1,17 @@
 {
   "name": "@ainthek/ast-tools-node",
-  "version": "1.0.0",
-  "description": "Stand-alone tree-sitter AST CLIs (parse / parse-stdin / dump / query / validate) with bundled query set. Extracted from cinderella tools/external/ast-tools.",
+  "version": "1.1.0",
+  "description": "Stand-alone tree-sitter AST CLIs (parse / parse-stdin / dump / query / validate) with bundled query set, plus ast-checksum. Extracted from cinderella tools/external/ast-tools.",
   "private": true,
-  "_aiProvenance": "Generated/modified by AI Kilo Code 7.4.17-gratex-009, used model qwen3.8-27b. tree-sitter-c-sharp pinned to CJS 0.23.1 (0.23.5 is ESM-only and breaks require()). tree-sitter-plsql is bundled from cinderella (vendored at ./tree-sitter-plsql; native build via node-gyp-build, build/ is git-ignored); consider a published spec before going to registry/github.",
+  "_aiProvenance": "Generated/modified by AI Kilo Code 7.4.17-gratex-009, used model qwen3.8-27b. (v1.1.0: ported ast-checksum plus its POSIX line-dedupe helper awk-uniq into bin/ from cinderella/tools/external/). tree-sitter-c-sharp pinned to CJS 0.23.1 (0.23.5 is ESM-only and breaks require()). tree-sitter-plsql is bundled from cinderella (vendored at ./tree-sitter-plsql; native build via node-gyp-build, build/ is git-ignored); consider a published spec before going to registry/github.",
   "bin": {
     "ast-tools-dump": "bin/ast-tools-dump",
     "ast-tools-parse": "bin/ast-tools-parse",
     "ast-tools-parse-stdin": "bin/ast-tools-parse-stdin",
     "ast-tools-query": "bin/ast-tools-query",
-    "ast-tools-validate": "bin/ast-tools-validate"
+    "ast-tools-validate": "bin/ast-tools-validate",
+    "ast-checksum": "bin/ast-checksum",
+    "awk-uniq": "bin/awk-uniq"
   },
   "files": [
     "bin",

@@ -17,6 +17,7 @@ can be reused independently of cinderella.
 | `ast-tools-dump <grammar> <file>` | Print a file's tree-sitter AST as plain text (`tree.rootNode.toString()`). |
 | `ast-tools-query <grammar> [-q \| -f] [--matches] [--format json\|text\|xml]` | Run a tree-sitter query against files from stdin; emit captures. |
 | `ast-tools-validate <grammar> [<file>]` | Report `OK`/`ERR`/`ERRR`/`EX` per file (syntax-error check with a 1s timeout). |
+| `ast-checksum <grammar> <file> [level]` | Hash a file's AST into three checksum columns: full tree / comment-filtered / comment-filtered + line-unique. |
 
 ## Queries
 
@@ -42,10 +43,9 @@ Intended distribution is a private `git+https` source (no public npm publish). C
 from a host package.json, pinning a tag:
 
 ```json
-"@ainthek/ast-tools-node": "git+https://github.com/kristianrusnak/ast-tools-node.git#v1.0.0"
+"@ainthek/ast-tools-node": "git+https://github.com/kristianrusnak/ast-tools-node.git#v1.1.0"
 ```
 
-Its five `bin` entries are linked into the host's `node_modules/.bin`, exposing the
-`ast-tools-*` commands on `PATH`. For one-off use, `npx git+https://github.com/kristianrusnak/ast-tools-node.git ast-tools-parse <…>` also works.
+Its seven `bin` entries (the five `ast-tools-*` CLIs, plus `ast-checksum` and the `awk-uniq` helper) are linked into the host's `node_modules/.bin`, putting all of them on `PATH`. For one-off use, `npx git+https://github.com/kristianrusnak/ast-tools-node.git ast-tools-parse <…>` also works.
 
 _Generated/modified by AI Kilo Code 7.4.17-gratex-009, used model qwen3.8-27b_

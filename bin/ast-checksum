@@ -1,0 +1,50 @@
+#!/bin/bash
+
+## Calculates checksum from ast structure
+## Version:
+## 
+## Usage:
+## 
+##    ast-checksum LANGUAGE FILE [LEVEL]
+##
+## Samples:
+## 
+##    ast-checksum java _sample_repos/jasperreports/jasperreports/src/net/sf/jasperreports/crosstabs/JRCrosstabDataset.java
+##    ast-checksum java _sample_repos/jasperreports/jasperreports/src/net/sf/jasperreports/crosstabs/JRCrosstabDataset.java 1,2   
+##    
+##    # kolko mame skupin fajlov na zaklde 1,2 ?
+##    qf '' 'java_type' -a file | head -n 30 | tr "\n" "\0" | xargs -0 -P10 -L1 -I{} ast-checksum java {} 1,2 | cut -d":" -f4 | sort -u | wc -l
+
+GRAMMAR="$1"
+FILE="$2"
+LEVEL="$3"
+
+if [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ -z "$GRAMMAR" ] || [ -z "$FILE" ]
+then 
+	perl -ne "/^## ?/ && s/^## ?//g && print" "${BASH_SOURCE[0]}"
+	exit 1
+fi
+
+# debug output enabled with AST_DEBUG=1
+debug() { [ -n "${AST_DEBUG:-}" ] && echo 1>&2 "$@"; }
+
+# sha1 digest of a (possibly multi-line) value
+sha1() { echo "$1" | shasum | cut -d" " -f1; }
+
+ast=$(echo "$FILE" | ast-tools-parse "$GRAMMAR" | xmlstarlet el)
+
+if [[ $LEVEL ]]; then
+	debug "Filtering ast to level $LEVEL"
+	ast_filtered="$(echo "$ast" | cut -d"/" -f "$LEVEL")"
+	debug "$ast_filtered"
+else
+	ast_filtered="$ast"
+fi
+
+ast_no_comments=$(echo "$ast_filtered" | grep -v -e "/line_comment" -e "/block_comment")
+
+checksum=$(sha1 "$ast_filtered")
+checksum_no_comment=$(sha1 "$ast_no_comments")
+checksum_no_comment_unique=$(sha1 "$(echo "$ast_no_comments" | awk-uniq)")
+
+echo "$FILE:$checksum:$checksum_no_comment:$checksum_no_comment_unique"
