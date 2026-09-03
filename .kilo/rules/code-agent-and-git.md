@@ -1,1 +1,0 @@
-**Important:** do not event try any git related operation withou using specialized task and subagent. They will result in tool call error and permission denied.
