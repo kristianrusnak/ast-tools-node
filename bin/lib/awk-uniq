@@ -1,4 +1,5 @@
 #!/bin/bash
+# Generated/modified by AI Kilo Code 7.4.22-gratex-016, used model deepseek-v4-flash.
 
 
 
@@ -13,9 +14,8 @@
 ## Samples:
 ##     
 if [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ -t 0 ]
-then 
-	# shellcheck source=/dev/null
-	. _usage.sh "${BASH_SOURCE[0]}" 2 --strip_hashes 1;
+then
+	perl -ne "/^## ?/ && s/^## ?//g && print" "${BASH_SOURCE[0]}"
 	exit 1
 fi
 
