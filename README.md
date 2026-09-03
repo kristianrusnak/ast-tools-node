@@ -50,11 +50,14 @@ works out of the box. Its native binding is compiled at `npm install` via `node-
 ## Installing
 
 Intended distribution is a private `git+https` source (no public npm publish). Consume it
-from a host package.json, pinning a tag:
+from a host package.json, pinning a commit:
 
 ```json
-"@ainthek/ast-tools-node": "git+https://github.com/kristianrusnak/ast-tools-node.git#v1.1.3"
+"@ainthek/ast-tools-node": "git+https://github.com/kristianrusnak/ast-tools-node.git#a9a9298"
 ```
+
+The pinned hash is the latest commit, `refactor: reorganize bin/ into bin/ast/ and bin/lib/
+with shared PATH bootstrap`.
 
 Its seven `bin` entries (the five `ast-tools-*` CLIs, plus `ast-checksum` and the `awk-uniq` helper) are linked into the host's `node_modules/.bin`, putting all of them on `PATH`. For one-off use, `npx git+https://github.com/kristianrusnak/ast-tools-node.git ast-tools-parse <…>` also works.
 
