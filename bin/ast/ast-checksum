@@ -1,4 +1,5 @@
 #!/bin/bash
+# Generated/modified by AI Kilo Code 7.4.22-gratex-016, used model deepseek-v4-flash.
 
 ## Calculates checksum from ast structure
 ## Version:
@@ -18,6 +19,10 @@
 GRAMMAR="$1"
 FILE="$2"
 LEVEL="$3"
+
+# Source shared runtime helpers (self-locating PATH bootstrap for sibling bin/ tools).
+# shellcheck source=/dev/null
+. "$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || printf '%s' "${BASH_SOURCE[0]}")")" && pwd -P)/../lib/_ast_tools.sh"
 
 if [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ -z "$GRAMMAR" ] || [ -z "$FILE" ]
 then 
