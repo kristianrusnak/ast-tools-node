@@ -10,8 +10,8 @@
 ##
 ## Samples:
 ## 
-##    ast-checksum java _sample_repos/jasperreports/jasperreports/src/net/sf/jasperreports/crosstabs/JRCrosstabDataset.java
-##    ast-checksum java _sample_repos/jasperreports/jasperreports/src/net/sf/jasperreports/crosstabs/JRCrosstabDataset.java 1,2   
+##    ast-checksum java _samples/jasperreports/jasperreports/src/net/sf/jasperreports/crosstabs/JRCrosstabDataset.java
+##    ast-checksum java _samples/jasperreports/jasperreports/src/net/sf/jasperreports/crosstabs/JRCrosstabDataset.java 1,2   
 ##    
 ##    # kolko mame skupin fajlov na zaklde 1,2 ?
 ##    qf '' 'java_type' -a file | head -n 30 | tr "\n" "\0" | xargs -0 -P10 -L1 -I{} ast-checksum java {} 1,2 | cut -d":" -f4 | sort -u | wc -l
