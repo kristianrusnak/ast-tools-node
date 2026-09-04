@@ -24,18 +24,18 @@
 ##   
 ##    find . -iname *.sh | ast-tools-validate bash 
 ##
-##    ast-tools-validate bash "_sample_repos/spikes/bash/tee-example2.sh"
-##    ast-tools-validate c-sharp "_sample_repos/spikes/csharp/AssemblyInfo.cs"
-##    ast-tools-validate css "_sample_repos/spikes/css/imports.css"
-##    ast-tools-validate gitattributes ".gitattributes"
-##    ast-tools-validate html "_sample_repos/spikes/html/mix-inline-script.htm"
-##    ast-tools-validate java "_sample_repos/spikes/java/Infer.java"
-##    ast-tools-validate plsql "_sample_repos/spikes/sql/chinook-mysql.sql"
-##    ast-tools-validate python "_sample_repos/spikes/call_commands-for-python-536/multiple_calls.py"
-##    ast-tools-validate sql "_sample_repos/spikes/sql/chinook-mysql.sql"
-##    ast-tools-validate toml "_sample_repos/spikes/python-pip-tools-project518/pyproject.toml"
-##    ast-tools-validate typescript/tsx "_sample_repos/spikes/test.tsx"
-##    ast-tools-validate typescript/typescript "_sample_repos/spikes/TypeScriptSamples/angular1/app/app.ts"
+##    ast-tools-validate bash "_samples/spikes/bash/tee-example2.sh"
+##    ast-tools-validate c-sharp "_samples/spikes/csharp/AssemblyInfo.cs"
+##    ast-tools-validate css "_samples/spikes/css/imports.css"
+##    ast-tools-validate gitattributes "_samples/.gitattributes"
+##    ast-tools-validate html "_samples/spikes/html/mix-inline-script.htm"
+##    ast-tools-validate java "_samples/spikes/java/Infer.java"
+##    ast-tools-validate plsql "_samples/spikes/sql/chinook-mysql.sql"
+##    ast-tools-validate python "_samples/spikes/call_commands-for-python-536/multiple_calls.py"
+##    ast-tools-validate sql "_samples/spikes/sql/chinook-mysql.sql"
+##    ast-tools-validate toml "_samples/spikes/python-pip-tools-project518/pyproject.toml"
+##    ast-tools-validate typescript/tsx "_samples/spikes/test.tsx"
+##    ast-tools-validate typescript/typescript "_samples/spikes/TypeScriptSamples/angular1/app/app.ts"
 ##
 ##    $ ls -1 *.* | ast-tools-validate bash
 ##  

@@ -1,0 +1,28 @@
+
+# set by ../init/setup-git-diffs
+*.xlsx diff=SPREADSHEETS
+
+# set by ../init/setup-git-diffs
+*.xlsm diff=SPREADSHEETS
+
+# set by ../init/setup-git-diffs
+*.ods diff=SPREADSHEETS
+
+# set by ../init/setup-git-diffs
+*.docx diff=WORD
+
+# set by ../init/setup-git-diffs
+
+# set by ../init/setup-git-diffs
+*.xlsx diff=SPREADSHEETS
+
+# set by ../init/setup-git-diffs
+*.xlsm diff=SPREADSHEETS
+
+# set by ../init/setup-git-diffs
+*.ods diff=SPREADSHEETS
+
+# set by ../init/setup-git-diffs
+*.docx diff=WORD
+
+# set by ../init/setup-git-diffs

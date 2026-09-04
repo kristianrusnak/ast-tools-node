@@ -166,7 +166,7 @@ git ls-files -- '*.java' | ast-tools-query java \
 
 **Command:**
 ```bash
-git ls-files -- '_sample_repos/spikes/gradle/*.gradle' | ast-tools-query groovy --compact -f groovy-top-level-compatibility.scm | jq '[.[] | {file: .file, source: (.captures | map(.name == "property" and .text == "sourceCompatibility") | index(true)) as $source_idx | if $source_idx then .captures[$source_idx + 1].text else null end, target: (.captures | map(.name == "property" and .text == "targetCompatibility") | index(true)) as $target_idx | if $target_idx then .captures[$target_idx + 1].text else null end}]'
+git ls-files -- '_samples/spikes/gradle/*.gradle' | ast-tools-query groovy --compact -f groovy-top-level-compatibility.scm | jq '[.[] | {file: .file, source: (.captures | map(.name == "property" and .text == "sourceCompatibility") | index(true)) as $source_idx | if $source_idx then .captures[$source_idx + 1].text else null end, target: (.captures | map(.name == "property" and .text == "targetCompatibility") | index(true)) as $target_idx | if $target_idx then .captures[$target_idx + 1].text else null end}]'
 ```
 
 **Explanation:**
@@ -182,12 +182,12 @@ This command combines a precise `ast-tools-query` with a robust `jq` filter.
 ```json
 [
   {
-    "file": "_sample_repos/spikes/gradle/java-single-prop.gradle",
+    "file": "_samples/spikes/gradle/java-single-prop.gradle",
     "source": "\"1.9\"",
     "target": null
   },
   {
-    "file": "_sample_repos/spikes/gradle/java17-source-target.gradle",
+    "file": "_samples/spikes/gradle/java17-source-target.gradle",
     "source": "\"1.7\"",
     "target": "\"1.7\""
   }....
@@ -360,7 +360,7 @@ git ls-files -- '*.py' | ast-tools-query python \
 
 **Command:**
 ```bash
-find _sample_repos/spikes/call_commands-for-python-536/ -name '*.py' | \
+find _samples/spikes/call_commands-for-python-536/ -name '*.py' | \
 ast-tools-query python -f python-subprocess-calls.scm --compact | \
 jsontool -A -e '
   this.result = this.map(item => (
@@ -376,13 +376,13 @@ jsontool -A -e '
 ```json
 [
   {
-    "file": "_sample_repos/spikes/call_commands-for-python-536//single_call.py",
+    "file": "_samples/spikes/call_commands-for-python-536//single_call.py",
     "commands": [
       "\"ls\""
     ]
   },
   {
-    "file": "_sample_repos/spikes/call_commands-for-python-536//multiple_calls.py",
+    "file": "_samples/spikes/call_commands-for-python-536//multiple_calls.py",
     "commands": [
       "command1",
       "command2",
@@ -1048,7 +1048,7 @@ This command finds all files in `tools/archi/bin`, extracts all bash commands, a
 
 **Command:**
 ```bash
-find _sample_repos -name "*.html" | \
+find _samples -name "*.html" | \
   ast-tools-query html \
     -q '(element (start_tag (tag_name) @_tag (#eq? @_tag "title")) (text) @title.text)' \
     --matches --compact | \
