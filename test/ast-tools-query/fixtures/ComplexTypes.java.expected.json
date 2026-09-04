@@ -1,0 +1,53 @@
+{
+  "file": "test/ast-tools-query/fixtures/ComplexTypes.java",
+  "types": [
+    {
+      "declaration": "class_declaration",
+      "name": "PublicClassWithComment",
+      "modifiers": ["public"],
+      "comment": "/**\n * Public class with comment.\n */"
+    },
+    {
+      "declaration": "class_declaration",
+      "name": "PrivateClassWithComment",
+      "modifiers": ["private"],
+      "comment": "/**\n * Private class with comment.\n */"
+    },
+    {
+      "declaration": "class_declaration",
+      "name": "ProtectedClassWithComment",
+      "modifiers": ["protected"],
+      "comment": "/**\n * Protected class with comment.\n */"
+    },
+    {
+      "declaration": "class_declaration",
+      "name": "PackageClassWithComment",
+      "modifiers": [],
+      "comment": "/**\n * Package-private class with comment.\n */"
+    },
+    {
+      "declaration": "class_declaration",
+      "name": "PublicClassNoComment",
+      "modifiers": ["public"],
+      "comment": null
+    },
+    {
+      "declaration": "class_declaration",
+      "name": "PrivateClassNoComment",
+      "modifiers": ["private"],
+      "comment": null
+    },
+    {
+      "declaration": "class_declaration",
+      "name": "ProtectedClassNoComment",
+      "modifiers": ["protected"],
+      "comment": null
+    },
+    {
+      "declaration": "class_declaration",
+      "name": "PackageClassNoComment",
+      "modifiers": [],
+      "comment": null
+    }
+  ]
+}
