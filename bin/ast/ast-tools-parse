@@ -4,7 +4,7 @@
 /*
 # CLI for tree-sitter
 # 
-echo "../cinderella/_sample_repos/spikes/csharp/AssemblyInfo.cs" | ast-tools-parse c-sharp
+echo "_samples/spikes/csharp/AssemblyInfo.cs" | ast-tools-parse c-sharp
 */
 
 
@@ -25,18 +25,18 @@ echo "../cinderella/_sample_repos/spikes/csharp/AssemblyInfo.cs" | ast-tools-par
 ##  
 ## Samples:
 ## 
-##    ast-tools-parse bash <<< "_sample_repos/spikes/bash/tee-example2.sh"
-##    ast-tools-parse c-sharp <<< "_sample_repos/spikes/csharp/AssemblyInfo.cs"
-##    ast-tools-parse css <<< "_sample_repos/spikes/css/imports.css"
+##    ast-tools-parse bash <<< "_samples/spikes/bash/tee-example2.sh"
+##    ast-tools-parse c-sharp <<< "_samples/spikes/csharp/AssemblyInfo.cs"
+##    ast-tools-parse css <<< "_samples/spikes/css/imports.css"
 ##    ast-tools-parse gitattributes <<< ".gitattributes"
-##    ast-tools-parse html <<< "_sample_repos/spikes/html/mix-inline-script.htm"
-##    ast-tools-parse java <<< "_sample_repos/spikes/java/Infer.java"
-##    ast-tools-parse plsql <<< "_sample_repos/spikes/sql/chinook-mysql.sql"
-##    ast-tools-parse python <<< "_sample_repos/spikes/call_commands-for-python-536/multiple_calls.py"
-##    ast-tools-parse sql <<< "_sample_repos/spikes/sql/chinook-mysql.sql"
-##    ast-tools-parse toml <<< "_sample_repos/spikes/python-pip-tools-project518/pyproject.toml"
-##    ast-tools-parse typescript/tsx <<< "_sample_repos/spikes/test.tsx"
-##    ast-tools-parse typescript/typescript <<< "_sample_repos/spikes/TypeScriptSamples/angular1/app/app.ts"
+##    ast-tools-parse html <<< "_samples/spikes/html/mix-inline-script.htm"
+##    ast-tools-parse java <<< "_samples/spikes/java/Infer.java"
+##    ast-tools-parse plsql <<< "_samples/spikes/sql/chinook-mysql.sql"
+##    ast-tools-parse python <<< "_samples/spikes/call_commands-for-python-536/multiple_calls.py"
+##    ast-tools-parse sql <<< "_samples/spikes/sql/chinook-mysql.sql"
+##    ast-tools-parse toml <<< "_samples/spikes/python-pip-tools-project518/pyproject.toml"
+##    ast-tools-parse typescript/tsx <<< "_samples/spikes/test.tsx"
+##    ast-tools-parse typescript/typescript <<< "_samples/spikes/TypeScriptSamples/angular1/app/app.ts"
 ##
 ##
 */
