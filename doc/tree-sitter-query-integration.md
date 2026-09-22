@@ -126,7 +126,7 @@ Captures: 10
 
 1. **Java with default queries:**
 ```bash
-echo "ClassicDocument.java" | ast-tools-query java
+echo "_samples/spikes/java/ClassicDocument.java" | ast-tools-query java
 ```
 Result: ✅ Successfully captured 20 definitions (class, methods, fields, constructor)
 
