@@ -1,0 +1,86 @@
+#!/bin/bash
+# Generated/modified by AI Kilo Code 7.5.6-gratex-017, used model glm-5.3-flash.
+#
+# init — session bootstrap for ast-tools-node, after the cinderella-style init.
+# MUST BE SOURCED (source ./init) — executing it directly only prints a warning,
+# because a child process could not change the caller's PATH anyway.
+#
+# It does exactly two things, and NOTHING global (no rc files, no system installs):
+#   1) installs all npm dependencies the bin/ tools need (declared in package.json,
+#      including the vendored file:./tree-sitter-plsql native build and mocha for the tests)
+#   2) puts the tools from bin/ (bin/ast CLIs + bin/lib helpers) on PATH of the
+#      CURRENT shell session only, via the shared bin/lib/_ast_tools.sh bootstrap
+# Additionally it checks the few external system tools the bin/* scripts call
+# (node, awk, perl, shasum, xmlstarlet) and reports the missing ones with hints —
+# installing those is left to the user/package manager, npm cannot bring them.
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+	echo 1>&2
+	echo 1>&2 "!!! MUST BE SOURCED !!! run: source ./init, not just ./init"
+	exit 1
+fi
+
+_ast_tools_init_main() {
+
+	function _echo() {
+		echo "[AST-TOOLS][init]:" "$@"
+	}
+
+	function install_deps() {
+		# declared deps: tree-sitter + grammars + xml-escape, vendored plsql via
+		# file:./tree-sitter-plsql (native binding built at install by node-gyp-build),
+		# devDependencies: mocha (npm run tests)
+		# --legacy-peer-deps: the grammar packages disagree on the optional tree-sitter
+		# peer version (bash wants ^0.21 vs the installed ^0.22), plain npm install fails
+		# on ERESOLVE — same approach as cinderella's init for tools/external
+		_echo "Installing npm dependencies. This may take 'a minute'...."
+		(cd "$d"; npm install --legacy-peer-deps) \
+			>/dev/null 2>&1 && _echo "Install npm dependencies: OK" \
+			|| _echo "Install npm dependencies: Error (run 'npm install' manually to see the reason)"
+	}
+
+	function set_tools_path() {
+		# the same idempotent bootstrap every bin/* CLI sources: prepends bin/lib and
+		# bin/ast to PATH, session only, so the sibling tools resolve by bare name
+		. "$d/bin/lib/_ast_tools.sh"
+		_echo "PATH (session only): $d/bin/ast"
+		_echo "PATH (session only): $d/bin/lib"
+	}
+
+	function check_external_tools() {
+		# system tools bin/* shell script(s) call outside of npm: xmlstarlet (+ shasum,
+		# perl for the help prints and checksums, awk for the awk-uniq helper)
+		local t
+		local missing=( )
+		for t in node awk perl shasum xmlstarlet; do
+			if type -p "$t" >/dev/null 2>&1; then
+				_echo "dep $t: OK"
+			else
+				missing+=( "$t" )
+				case "$t" in
+					node) _echo "dep $t: MISSING (nodejs, see https://nodejs.org: apt install nodejs | brew install node)" ;;
+					xmlstarlet) _echo "dep $t: MISSING (apt install xmlstarlet | brew install xmlstarlet)" ;;
+					shasum) _echo "dep $t: MISSING (perl core, usually ships with perl: apt install perl | brew install shasum)" ;;
+					*) _echo "dep $t: MISSING (unexpected, should be part of any base system)" ;;
+				esac
+			fi
+		done
+		if (( ${#missing[@]} )); then
+			_echo "Warning: ${missing[*]} missing — affected bin/ tools will fail until installed"
+		fi
+	}
+
+	local d="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd -P )"
+	_echo "session bootstrap for $d"
+
+	install_deps
+	set_tools_path
+	check_external_tools
+
+	_echo "try: ast-tools-parse bash --help | ast-tools-query --help | ast-checksum --help | awk-uniq --help"
+	_echo "rerunning source ./init is safe, both steps are idempotent"
+}
+
+#--------------------------------------------------------------------------------------------
+_ast_tools_init_main; unset -f _ast_tools_init_main # execute main
+#--------------------------------------------------------------------------------------------
