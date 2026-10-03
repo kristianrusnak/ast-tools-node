@@ -2,19 +2,23 @@
 // Generated/modified by AI Kilo Code 7.5.6-gratex-017, used model glm-5.3.
 
 /*
-## CLI for discovering bundled tree-sitter query files (.scm)
+## CLI for discovering bundled tree-sitter query files (.scm) and usage examples
 ##
 ## Lists and inspects the query library bundled with this package (queries/ folder) —
 ## the same files ast-tools-query resolves bare -f names against. Use it to discover
 ## existing queries before crafting a new inline one, and to inspect a query's content,
-## header documentation and usage samples.
+## header documentation and usage samples. Also prints the per-language usage examples
+## for ast-tools-query (doc/samples/ folder) — read them BEFORE running ast-tools-query.
 ##
-## Version: 1.0
+## Version: 1.1
+##          1.0  list, show
+##          1.1  examples [LANGUAGE]
 ##
 ## Usage:
 ##
 ##     ast-tools-queries list [--language LANGUAGE]
 ##     ast-tools-queries show NAME
+##     ast-tools-queries examples [LANGUAGE]
 ##     ast-tools-queries -h | --help
 ##
 ## COMMANDS:
@@ -24,6 +28,12 @@
 ##   show NAME                   Print the full content of a query file, resolved against the
 ##                               bundled queries/ folder: exact file name, NAME.scm, or the
 ##                               companion jq post-processing helper NAME.sh.
+##   examples [LANGUAGE]         Print practical ast-tools-query usage examples. With LANGUAGE
+##                               (bash, java, python, markdown, ...), the examples for that
+##                               language. Without LANGUAGE, the language-independent rules
+##                               (stdin input, output formats, jq/xmlstarlet pipelines) followed
+##                               by the list of languages that have examples.
+##                               Read the examples for your language before running ast-tools-query.
 ##   -h, --help                  Show this help
 ##
 ## Query file names:
@@ -47,7 +57,12 @@
 ##   # Inspect a companion jq helper
 ##   ast-tools-queries show markdown-headings.sh
 ##
+##   # Usage examples
+##   ast-tools-queries examples            # general rules + available languages
+##   ast-tools-queries examples bash       # bash-specific examples
+##
 ##   # Typical discovery-to-execution flow
+##   ast-tools-queries examples java
 ##   ast-tools-queries list --language java
 ##   ast-tools-queries show java-definitions
 ##   git ls-files -- '*.java' | ast-tools-query java -f java-definitions.scm --matches --format json | jq
@@ -67,6 +82,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const queriesDir = path.join(__dirname, '../../queries');
+const samplesDir = path.join(__dirname, '../../doc/samples');
+const GENERAL_SAMPLES = 'general';
 
 function listScmFiles() {
   return fs.readdirSync(queriesDir)
@@ -88,6 +105,14 @@ function resolveQueryFile(name) {
     }
   }
   return null;
+}
+
+// Languages that have an examples file: doc/samples/<language>.md, minus the general one.
+function listSampleLanguages() {
+  return fs.readdirSync(samplesDir)
+    .filter(f => f.endsWith('.md') && f !== `${GENERAL_SAMPLES}.md`)
+    .map(f => f.slice(0, -'.md'.length))
+    .sort();
 }
 
 const args = process.argv.slice(2);
@@ -140,7 +165,34 @@ if (command === 'show') {
   process.exit(0);
 }
 
+if (command === 'examples') {
+  const language = args[1];
+  if (args.length > 2) {
+    console.error(`Error: Unknown argument '${args[2]}' for examples`);
+    process.exit(1);
+  }
+
+  if (!language) {
+    process.stdout.write(fs.readFileSync(path.join(samplesDir, `${GENERAL_SAMPLES}.md`), 'utf8'));
+    console.log('\n## Languages with examples\n');
+    listSampleLanguages().forEach(l => console.log(`- ${l}  ->  ast-tools-queries examples ${l}`));
+    process.exit(0);
+  }
+
+  // Plain language name only (no path separators); the general file is not a language.
+  const file = language.toLowerCase();
+  if (file !== path.basename(file) || file === GENERAL_SAMPLES || !listSampleLanguages().includes(file)) {
+    console.error(`Error: No examples for language '${language}'`);
+    console.error('\nLanguages with examples:');
+    listSampleLanguages().forEach(l => console.error(`  - ${l}`));
+    process.exit(1);
+  }
+
+  process.stdout.write(fs.readFileSync(path.join(samplesDir, `${file}.md`), 'utf8'));
+  process.exit(0);
+}
+
 console.error(`Error: Unknown command '${command ?? '(none)'}'`);
-console.error('Usage: ast-tools-queries list [--language LANGUAGE] | ast-tools-queries show NAME');
+console.error('Usage: ast-tools-queries list [--language LANGUAGE] | show NAME | examples [LANGUAGE]');
 console.error('Run ast-tools-queries --help for details.');
 process.exit(1);
