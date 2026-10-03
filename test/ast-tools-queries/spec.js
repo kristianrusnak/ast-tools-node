@@ -6,6 +6,11 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const queriesDir = path.join(__dirname, "..", "..", "queries");
+const samplesDir = path.join(__dirname, "..", "..", "doc", "samples");
+const sampleLanguages = fs.readdirSync(samplesDir)
+  .filter(f => f.endsWith(".md") && f !== "general.md")
+  .map(f => f.slice(0, -3))
+  .sort();
 
 function run(args, options = {}) {
   return execFileSync("ast-tools-queries", args, {
@@ -106,7 +111,75 @@ describe("ast-tools-queries", function () {
     );
     assert.ok(help.includes("ast-tools-queries list"), "Expected list command in help");
     assert.ok(help.includes("ast-tools-queries show"), "Expected show command in help");
+    assert.ok(help.includes("ast-tools-queries examples"), "Expected examples command in help");
     assert.ok(help.includes("Usage"), "Expected Usage section in help");
+  });
+
+  it("examples LANGUAGE — prints that language's samples file verbatim", function () {
+    assert.ok(sampleLanguages.includes("bash") && sampleLanguages.includes("java"), "Expected bash and java samples");
+    for (const lang of sampleLanguages) {
+      const output = run(["examples", lang]);
+      assert.strictEqual(output, fs.readFileSync(path.join(samplesDir, `${lang}.md`), "utf8"), `examples ${lang}`);
+    }
+  });
+
+  it("examples LANGUAGE — case-insensitive", function () {
+    assert.strictEqual(run(["examples", "BASH"]), run(["examples", "bash"]));
+  });
+
+  it("examples (no language) — general rules followed by the list of languages", function () {
+    const output = run(["examples"]);
+    const general = fs.readFileSync(path.join(samplesDir, "general.md"), "utf8");
+    assert.ok(output.startsWith(general), "Expected general.md content first");
+    assert.ok(output.includes("Languages with examples"), "Expected languages section");
+    for (const lang of sampleLanguages) {
+      assert.ok(output.includes(`ast-tools-queries examples ${lang}`), `Expected ${lang} in languages list`);
+    }
+    assert.ok(!output.includes("examples general"), "general is not a language");
+  });
+
+  for (const bad of ["nosuchlang", "general", "../general", "../../package"]) {
+    it(`examples ${bad} — rejected with the list of available languages`, function () {
+      assert.throws(
+        () => execFileSync("ast-tools-queries", ["examples", bad], { stdio: ["pipe", "pipe", "pipe"] }),
+        (err) => {
+          const stderr = err.stderr.toString();
+          assert.ok(stderr.includes("No examples for language"), "Expected error message");
+          assert.ok(stderr.includes("- bash"), "Expected available languages in error");
+          assert.strictEqual(err.stdout.toString(), "", "Expected nothing on stdout");
+          return err.status !== 0;
+        }
+      );
+    });
+  }
+
+  it("samples — every bundled query / helper they reference exists in queries/", function () {
+    const placeholders = new Set(["x.scm", "my-query.scm", "NAME.scm", "NAME.sh"]);
+    const missing = [];
+    for (const f of fs.readdirSync(samplesDir).filter(f => f.endsWith(".md"))) {
+      const text = fs.readFileSync(path.join(samplesDir, f), "utf8");
+      const names = [
+        ...[...text.matchAll(/-f ([\w.-]+\.scm)/g)].map(m => m[1]),
+        ...[...text.matchAll(/ast-tools-queries show ([\w.-]+\.sh)/g)].map(m => m[1]),
+      ];
+      for (const n of names.filter(n => !placeholders.has(n))) {
+        if (!fs.existsSync(path.join(queriesDir, n))) missing.push(`${f}: ${n}`);
+      }
+    }
+    assert.deepStrictEqual(missing, []);
+  });
+
+  it("ast-tools-query --help — tells to read the examples first", function () {
+    let help;
+    assert.throws(
+      () => execFileSync("ast-tools-query", ["--help"], { stdio: ["pipe", "pipe", "pipe"] }),
+      (err) => {
+        help = err.stdout.toString();
+        return err.status !== 0;
+      }
+    );
+    assert.ok(help.includes("BEFORE USING THIS TOOL"), "Expected before-use notice");
+    assert.ok(help.includes("ast-tools-queries examples"), "Expected examples pointer");
   });
 
   it("unknown command — exits non-zero with usage hint", function () {
