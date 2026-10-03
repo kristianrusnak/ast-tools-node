@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Generated/modified by AI Kilo Code 7.4.22-gratex-016, used model deepseek-v4-flash.
+// Generated/modified by AI Kilo Code 7.5.6-gratex-017, used model glm-5.3.
 
 /*
 ## Generated/modified by AI RooCode 3.36.0, used model google/claude-sonnet-4-6
@@ -13,6 +13,7 @@
 ##          2.0  node type in captures
 ##          3.0  --matches flag: one result per query match (uses query.matches() instead of query.captures())
 ##               Enables proper per-match scoping for multi-pattern queries.
+##          3.1  help points to ast-tools-queries (list/show bundled .scm query library)
 ##
 ## Usage:
 ##     git grep -l -I "pattern" | ast-tools-query LANGUAGE [OPTIONS]
@@ -33,6 +34,12 @@
 ## Query file paths:
 ##   - Relative paths (e.g., "python-decorators.scm") are resolved from queries/ folder
 ##   - Absolute paths or paths starting with ./ or ../ are used as-is
+##
+## Discovering queries:
+##   - ast-tools-queries list                  — names of all bundled .scm query files
+##   - ast-tools-queries list --language bash  — only queries for one grammar
+##   - ast-tools-queries show NAME             — full content of a query (NAME, NAME.scm or NAME.sh)
+##   Prefer an existing bundled query over crafting an inline -q one.
 ##
 ## Examples:
 ##
@@ -154,11 +161,13 @@ async function loadQueryString() {
   console.error(`\nAvailable query files for '${GRAMMAR}':`);
   try {
     fs.readdirSync(path.join(__dirname, '../../queries'))
-      .filter(f => f.toLowerCase().startsWith(GRAMMAR.toLowerCase()) && f.endsWith('.scm'))
+      .filter(f => f.endsWith('.scm') &&
+        (f.toLowerCase().startsWith(GRAMMAR.toLowerCase() + '-') || f.toLowerCase() === GRAMMAR.toLowerCase() + '.scm'))
       .forEach(f => console.error(`  - ${f}`));
   } catch (e) {
     // Silently ignore error, as the old version did not handle this case either.
   }
+  console.error('\nTip: ast-tools-queries list / show NAME to discover and inspect the full bundled query library.');
   process.exit(1);
 }
 

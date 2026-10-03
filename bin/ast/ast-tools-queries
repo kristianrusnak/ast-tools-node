@@ -1,0 +1,146 @@
+#!/usr/bin/env node
+// Generated/modified by AI Kilo Code 7.5.6-gratex-017, used model glm-5.3.
+
+/*
+## CLI for discovering bundled tree-sitter query files (.scm)
+##
+## Lists and inspects the query library bundled with this package (queries/ folder) —
+## the same files ast-tools-query resolves bare -f names against. Use it to discover
+## existing queries before crafting a new inline one, and to inspect a query's content,
+## header documentation and usage samples.
+##
+## Version: 1.0
+##
+## Usage:
+##
+##     ast-tools-queries list [--language LANGUAGE]
+##     ast-tools-queries show NAME
+##     ast-tools-queries -h | --help
+##
+## COMMANDS:
+##   list                        Print the names of all bundled .scm query files, one per line.
+##                               With --language LANGUAGE, only queries whose file name starts
+##                               with that grammar prefix (bash, java, python, ...).
+##   show NAME                   Print the full content of a query file, resolved against the
+##                               bundled queries/ folder: exact file name, NAME.scm, or the
+##                               companion jq post-processing helper NAME.sh.
+##   -h, --help                  Show this help
+##
+## Query file names:
+##   Names follow GRAMMAR-what-it-matches.scm — the prefix selects the language
+##   (bash-commands.scm, java-definitions.scm, python-decorators.scm, ...).
+##   Some queries have a companion .sh helper (same base name) that post-processes
+##   `ast-tools-query --format json` output with jq — `show NAME.sh` displays those too.
+##
+## Examples:
+##
+##   # List all bundled queries
+##   ast-tools-queries list
+##
+##   # List only bash queries
+##   ast-tools-queries list --language bash
+##
+##   # Inspect a query (with or without the .scm extension)
+##   ast-tools-queries show bash-function-cindy-detector
+##   ast-tools-queries show bash-commands.scm
+##
+##   # Inspect a companion jq helper
+##   ast-tools-queries show markdown-headings.sh
+##
+##   # Typical discovery-to-execution flow
+##   ast-tools-queries list --language java
+##   ast-tools-queries show java-definitions
+##   git ls-files -- '*.java' | ast-tools-query java -f java-definitions.scm --matches --format json | jq
+*/
+
+if (process.argv.includes('-h') || process.argv.includes('--help') || (process.stdin.isTTY && process.argv.length === 2)) {
+  console.log(
+    require('fs').readFileSync(__filename, 'utf8')
+      .match(/^## ?.*/gm)
+      .map(line => line.replace(/^## ?/, ''))
+      .join('\n')
+  );
+  process.exit(1);
+}
+
+const fs = require('node:fs');
+const path = require('node:path');
+
+const queriesDir = path.join(__dirname, '../../queries');
+
+function listScmFiles() {
+  return fs.readdirSync(queriesDir)
+    .filter(f => f.endsWith('.scm'))
+    .sort();
+}
+
+// Resolve NAME against queries/: exact file, NAME.scm, then companion NAME.sh.
+// NAME must be a plain file name inside queries/ — path traversal is rejected.
+function resolveQueryFile(name) {
+  if (name !== path.basename(name) || name === '.' || name === '..') {
+    return null;
+  }
+  const candidates = [name, `${name}.scm`, `${name}.sh`];
+  for (const candidate of candidates) {
+    const resolved = path.join(queriesDir, candidate);
+    if (fs.existsSync(resolved) && fs.statSync(resolved).isFile()) {
+      return resolved;
+    }
+  }
+  return null;
+}
+
+const args = process.argv.slice(2);
+const command = args[0];
+
+if (command === 'list') {
+  let language = null;
+  for (let i = 1; i < args.length; i++) {
+    if (args[i] === '--language') {
+      language = args[++i];
+      if (!language) {
+        console.error('Error: --language requires a value, e.g. --language bash');
+        process.exit(1);
+      }
+    } else {
+      console.error(`Error: Unknown argument '${args[i]}' for list`);
+      process.exit(1);
+    }
+  }
+
+  let files = listScmFiles();
+  if (language) {
+    const lang = language.toLowerCase();
+    files = files.filter(f => f.toLowerCase().startsWith(lang + '-') || f.toLowerCase() === lang + '.scm');
+  }
+  files.forEach(f => console.log(f));
+  process.exit(0);
+}
+
+if (command === 'show') {
+  const name = args[1];
+  if (!name) {
+    console.error('Error: NAME argument is required, e.g. ast-tools-queries show bash-commands');
+    process.exit(1);
+  }
+  if (args.length > 2) {
+    console.error(`Error: Unknown argument '${args[2]}' for show`);
+    process.exit(1);
+  }
+
+  const resolved = resolveQueryFile(name);
+  if (!resolved) {
+    console.error(`Error: Query '${name}' not found in bundled queries/ folder`);
+    console.error('\nAvailable query files:');
+    listScmFiles().forEach(f => console.error(`  - ${f}`));
+    process.exit(1);
+  }
+
+  process.stdout.write(fs.readFileSync(resolved, 'utf8'));
+  process.exit(0);
+}
+
+console.error(`Error: Unknown command '${command ?? '(none)'}'`);
+console.error('Usage: ast-tools-queries list [--language LANGUAGE] | ast-tools-queries show NAME');
+console.error('Run ast-tools-queries --help for details.');
+process.exit(1);
