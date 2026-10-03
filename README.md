@@ -16,7 +16,7 @@ can be reused independently of cinderella.
 | `ast-tools-parse-stdin <grammar>` | Parse an ad-hoc snippet from stdin (single grammar). |
 | `ast-tools-dump <grammar> <file>` | Print a file's tree-sitter AST as plain text (`tree.rootNode.toString()`). |
 | `ast-tools-query <grammar> [-q \| -f] [--matches] [--format json\|text\|xml]` | Run a tree-sitter query against files from stdin; emit captures. |
-| `ast-tools-queries list\|show` | Discover the bundled `.scm` query library: `list` (names, `--language` filter) and `show NAME` (full query content, incl. companion `.sh` jq helpers). |
+| `ast-tools-queries list\|show\|examples` | Discover the bundled `.scm` query library: `list` (names, `--language` filter), `show NAME` (full query content, incl. companion `.sh` jq helpers) and `examples [LANGUAGE]` (per-language `ast-tools-query` usage examples). |
 | `ast-tools-validate <grammar> [<file>]` | Report `OK`/`ERR`/`ERRR`/`EX` per file (syntax-error check with a 1s timeout). |
 | `ast-checksum <grammar> <file> [level]` | Hash a file's AST into three checksum columns: full tree / comment-filtered / comment-filtered + line-unique. |
 
@@ -67,6 +67,14 @@ its header documents what it matches and how to pipe the results. Several querie
 a companion `.sh` jq post-processing helper with the same base name (`show NAME.sh`).
 `ast-tools-query --help` points to this discovery CLI, so agents find the library before
 crafting inline queries.
+
+`ast-tools-queries examples [LANGUAGE]` prints practical, tested `ast-tools-query` usage
+examples. Without a language it prints the language-independent rules (stdin input, output
+formats, jq pipelines) plus the list of languages that have examples; with one (`bash`, `java`,
+`python`, `markdown`, ...) it prints that language's file. The sources live in `doc/samples/`
+(`general.md` plus `<language>.md`, shipped in the npm package). `ast-tools-query --help` tells
+the reader to run it before using the tool. To add a language, drop a `doc/samples/<language>.md`
+file — no code change needed.
 
 ## Dependencies
 

@@ -14,6 +14,12 @@
 ##          3.0  --matches flag: one result per query match (uses query.matches() instead of query.captures())
 ##               Enables proper per-match scoping for multi-pattern queries.
 ##          3.1  help points to ast-tools-queries (list/show bundled .scm query library)
+##          3.2  help tells to read ast-tools-queries examples before use; sample commands fixed
+##               (file paths come from stdin, not from arguments)
+##
+## BEFORE USING THIS TOOL: run `ast-tools-queries examples LANGUAGE` (e.g. bash, java, python,
+## markdown; plain `ast-tools-queries examples` for the general rules) and follow the samples,
+## then execute. Files are piped in via stdin — file path arguments are NOT supported.
 ##
 ## Usage:
 ##     git grep -l -I "pattern" | ast-tools-query LANGUAGE [OPTIONS]
@@ -36,6 +42,7 @@
 ##   - Absolute paths or paths starting with ./ or ../ are used as-is
 ##
 ## Discovering queries:
+##   - ast-tools-queries examples LANGUAGE     — usage examples for a language (read these first)
 ##   - ast-tools-queries list                  — names of all bundled .scm query files
 ##   - ast-tools-queries list --language bash  — only queries for one grammar
 ##   - ast-tools-queries show NAME             — full content of a query (NAME, NAME.scm or NAME.sh)
@@ -44,14 +51,14 @@
 ## Examples:
 ##
 ##   # Custom query string
-##   ast-tools-query java -q "(method_declaration) @method" Test.java
+##   echo Test.java | ast-tools-query java -q "(method_declaration) @method"
 ##
 ##   # Query from file (relative to queries/ folder)
-##   ast-tools-query python -f python-decorators.scm src/app.py
+##   echo src/app.py | ast-tools-query python -f python-decorators.scm
 ##
 ##   # Query from file (absolute or relative path)
-##   ast-tools-query python -f ./my-query.scm src/app.py
-##   ast-tools-query python -f /path/to/query.scm src/app.py
+##   echo src/app.py | ast-tools-query python -f ./my-query.scm
+##   echo src/app.py | ast-tools-query python -f /path/to/query.scm
 ##
 ##   # Multiple files from stdin
 ##   find src -name "*.java" | ast-tools-query java -f java-definitions.scm
@@ -167,7 +174,7 @@ async function loadQueryString() {
   } catch (e) {
     // Silently ignore error, as the old version did not handle this case either.
   }
-  console.error('\nTip: ast-tools-queries list / show NAME to discover and inspect the full bundled query library.');
+  console.error('\nTip: ast-tools-queries examples LANGUAGE for usage examples; ast-tools-queries list / show NAME to discover and inspect the full bundled query library.');
   process.exit(1);
 }
 
